@@ -78,7 +78,7 @@ def calculate_scores_v2(view: int, favorite: int, coin: int, like: int, danmaku:
     # 特殊情况处理: 如果有其他互动但没有投币,虚设为1参与计算
     coin = 1 if (coin == 0 and view > 0 and favorite > 0 and like > 0) else coin  
     # 计算修正系数A(搬运稿硬币得分补偿)
-    fixA = 0 if coin <= 0 else (1 if copyright == 1 else ceil(max(1, (view + 20 * favorite + 40 * coin + 10 * like) / (200 * coin)) * 100) / 100)  
+    fixA = 0 if coin <= 0 else (1 if copyright == 1 else ceil(max(1, (view + 40 * favorite + 10 * like) / (150 * coin + 50 * max(0, danmaku))) * 100) / 100)  
     
     # 计算修正系数B(云视听小电视等高播放收藏、低硬币点赞抑制系数)
     fixB = 0 if view + 20 * favorite <= 0 else ceil(min(1, 3 * max(0, (20 * coin * fixA + 10 * like)) / (view + 20 * favorite)) * 100) / 100
