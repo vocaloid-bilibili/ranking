@@ -338,7 +338,7 @@ class BilibiliScraper:
                 })
 
             current_date = next_date - timedelta(days=1)
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
 
         if not all_videos_data:
             logger.info("未采集到新视频。") 
