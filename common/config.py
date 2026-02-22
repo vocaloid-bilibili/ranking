@@ -6,7 +6,7 @@ import yaml
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
-from functools import cached_property
+from functools import cached_property, lru_cache
 
 
 # ==================== 配置加载器 ====================
@@ -195,6 +195,24 @@ class Templates:
             ranking_new=tpl.get("ranking_new", "新曲榜{new_date}与{old_date}.xlsx"),
             combined=tpl.get("combined", "{new_date}与{old_date}.xlsx"),
         )
+
+
+@lru_cache(maxsize=1)
+def get_tid_map() -> dict:
+    """获取 tid -> tname 映射"""
+    config_path = Path(__file__).parent.parent / "config" / "tid.yaml"
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+            return {int(k): v for k, v in data.get("tname", {}).items()}
+    except Exception:
+        return {}
+
+
+def tid_to_tname(tid: int) -> str:
+    """将分区 ID 转换为分区名称"""
+    tid_map = get_tid_map()
+    return tid_map.get(tid, str(tid))
 
 
 # ==================== 服务配置 ====================

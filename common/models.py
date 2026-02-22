@@ -34,6 +34,7 @@ class VideoInfo:
     pubdate: str = ""
     duration: str = ""
     page: int = 0
+    tid: str = ""
     view: int = 0
     favorite: int = 0
     coin: int = 0

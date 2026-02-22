@@ -9,7 +9,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill, Alignment
 
 from common.logger import logger
-from common.formatters import clean_excel_chars, format_aid
+from common.formatters import clean_excel_chars, format_aid, COLUMN_FORMATTERS
 
 
 # ==================== DataFrame 预处理 ====================
@@ -41,6 +41,11 @@ def prepare_dataframe(
     # 格式化aid列
     if "aid" in df.columns:
         df["aid"] = df["aid"].apply(format_aid)
+
+    # 应用列格式化器（tid → tname 等）
+    for col, formatter in COLUMN_FORMATTERS.items():
+        if col in df.columns:
+            df[col] = df[col].apply(formatter)
 
     # 清洗非法字符
     return clean_dataframe_for_excel(df)

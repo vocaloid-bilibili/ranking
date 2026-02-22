@@ -31,6 +31,7 @@ def transform_api_response(api_data: Dict[str, Any]) -> Dict[str, Any]:
         ),
         "duration": api_data.get("duration", 0),
         "page": api_data.get("page", 1),
+        "tid": api_data.get("tid", 0),
         "view": api_data.get("cnt_info", {}).get("play", 0),
         "favorite": api_data.get("cnt_info", {}).get("collect", 0),
         "coin": api_data.get("cnt_info", {}).get("coin", 0),
