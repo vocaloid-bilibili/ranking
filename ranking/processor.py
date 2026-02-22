@@ -336,7 +336,11 @@ class RankingProcessor:
             df = df[df["point"] >= threshold]
         df = df.sort_values("point", ascending=False)
 
-        await asyncio.to_thread(self.data_loader.save, df, paths_info["output"])
+        usecols_key = "new" if task_type == "new_song" else "old"
+
+        await asyncio.to_thread(
+            self.data_loader.save, df, paths_info["output"], usecols_key
+        )
         return df
 
     def _get_diff_task_config(self, task_type: str, dates: dict) -> tuple:

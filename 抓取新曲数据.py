@@ -1,6 +1,5 @@
 # 抓取新曲数据.py
 import asyncio
-from pathlib import Path
 
 from common.config import get_paths
 from common.models import ScraperConfig, SearchOptions
@@ -11,10 +10,7 @@ from bilibili.scraper import BilibiliScraper
 async def main():
     paths = get_paths()
     keywords = paths.load_keywords()
-    config = ScraperConfig(
-        KEYWORDS=keywords, OUTPUT_DIR=Path(__file__).parent / "测试内容"
-    )
-    # config = ScraperConfig(KEYWORDS=keywords, OUTPUT_DIR=paths.snapshot_new)
+    config = ScraperConfig(KEYWORDS=keywords, OUTPUT_DIR=paths.snapshot_new)
     search_options = [
         SearchOptions(video_zone_type=0),
         SearchOptions(video_zone_type=3),

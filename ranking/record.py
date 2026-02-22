@@ -27,6 +27,7 @@ METADATA_FIELDS = [
     "page",
     "image_url",
     "intro",
+    "tid",
 ]
 COLLECTED_MERGE_FIELDS = ["name", "author", "synthesizer", "copyright", "vocal", "type"]
 

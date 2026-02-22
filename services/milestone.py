@@ -33,13 +33,7 @@ class MilestoneResult:
     ten_thousand_records: List[MilestoneRecord] = field(default_factory=list)
 
     def print_summary(self):
-        if self.million_records:
-            logger.info("--- 百万达成 ---")
-            for r in sorted(self.million_records, key=lambda x: -x.milestone):
-                print(f"{r.milestone * 100}万：{r.name}   {r.bvid}")
-
         if self.ten_thousand_records:
-            logger.info("--- 十万达成 ---")
             for r in sorted(self.ten_thousand_records, key=lambda x: -x.milestone):
                 print(f"{r.milestone * 10}万：{r.name}   {r.bvid}")
 
@@ -168,7 +162,6 @@ def run_milestone_check(
 
             output_file_10w = output_dir_100k / f"十万记录{date2}与{date1}.xlsx"
             save_excel(df_10w, output_file_10w)
-            logger.info(f"已保存十万记录: {output_file_10w}")
 
     # 周对比（仅周六）
     if is_saturday:
@@ -198,4 +191,3 @@ def run_milestone_check(
 
                 output_file = output_dir / f"百万记录{today:%Y-%m-%d}.xlsx"
                 save_excel(df_million, output_file)
-                logger.info(f"已保存百万记录: {output_file}")
