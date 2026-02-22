@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-自动找到 daily_video 中最新一期的竖屏视频。
-账号 / 分区 / 标签 / 简介 等从 config/daily_upload.yaml 读取。
-"""
+# 投稿.py
+"""日刊视频上传入口"""
+
 import re
 import json
 import yaml
@@ -11,24 +9,29 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, Tuple, List
 
+from video.config import load_video_config
+
 CONFIG_DIR = Path("config")
 UPLOAD_CONFIG_PATH = CONFIG_DIR / "daily_upload.yaml"
 
+
 def load_upload_config() -> Dict:
+    """加载上传配置"""
     if not UPLOAD_CONFIG_PATH.exists():
-        raise FileNotFoundError(
-            f"未找到投稿配置文件: {UPLOAD_CONFIG_PATH}\n"
-            f"请先创建 config/daily_upload.yaml。"
-        )
+        raise FileNotFoundError(f"未找到投稿配置文件: {UPLOAD_CONFIG_PATH}")
     with open(UPLOAD_CONFIG_PATH, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f) or {}
     return cfg
 
+
 def cn_date_from_yyyymmdd(yyyymmdd: str) -> str:
+    """转中文日期"""
     dt = datetime.strptime(yyyymmdd, "%Y%m%d")
     return f"{dt.year}年{dt.month}月{dt.day}日"
 
+
 def find_latest_issue_video(base_dir: Path) -> Tuple[Path, Path, int, str]:
+    """查找最新一期视频"""
     if not base_dir.exists():
         raise FileNotFoundError(f"日刊视频目录不存在: {base_dir}")
 
@@ -48,16 +51,14 @@ def find_latest_issue_video(base_dir: Path) -> Tuple[Path, Path, int, str]:
         final_videos.append((p, issue, date_str))
 
     if not final_videos:
-        raise RuntimeError(f"在 {base_dir} 中没有找到形如 {{期数}}_{{日期}}.mp4 的成品视频，")
+        raise RuntimeError(f"在 {base_dir} 中没有找到成品视频")
 
     final_videos.sort(key=lambda x: (x[2], x[1]))
     video_path, issue, yyyymmdd = final_videos[-1]
 
     cover_path = base_dir / f"{issue}_{yyyymmdd}_cover.jpg"
     if not cover_path.exists():
-        raise FileNotFoundError(
-            f"找到了最新一期视频 {video_path}，但对应封面不存在: {cover_path}"
-        )
+        raise FileNotFoundError(f"封面不存在: {cover_path}")
 
     print("检测到最新一期：")
     print(f"  期数: {issue}")
@@ -66,11 +67,16 @@ def find_latest_issue_video(base_dir: Path) -> Tuple[Path, Path, int, str]:
     print(f"  封面: {cover_path}")
     return video_path, cover_path, issue, yyyymmdd
 
+
 def build_title(issue: int, yyyymmdd: str) -> str:
+    """生成标题"""
     return f"日刊虚拟歌手外语排行榜#{issue} {cn_date_from_yyyymmdd(yyyymmdd)}"
 
+
 def build_dynamic(issue: int, yyyymmdd: str) -> str:
+    """生成动态文案"""
     return f"日刊虚拟歌手外语排行榜#{issue} {cn_date_from_yyyymmdd(yyyymmdd)}"
+
 
 def run_biliup_upload(
     biliup_exe: str,
@@ -83,10 +89,7 @@ def run_biliup_upload(
     tid: int,
     dynamic: str,
 ) -> str:
-    """
-    使用 biliup CLI 投稿。
-    biliup_exe 从配置中读取，可以是 "biliup" 或 "C:/xxx/biliup.exe"
-    """
+    """执行 biliup 上传"""
     if not video.exists():
         raise FileNotFoundError(f"视频不存在: {video}")
     if not cover.exists():
@@ -95,7 +98,8 @@ def run_biliup_upload(
     tag_str = ",".join(tags)
     cmd = [
         biliup_exe,
-        "--user-cookie", "config/cookies.json",
+        "--user-cookie",
+        "config/cookies.json",
         "upload",
         str(video),
         "--tid",
@@ -113,7 +117,7 @@ def run_biliup_upload(
         "--dynamic",
         dynamic,
         "--copyright",
-        "1", 
+        "1",
         "--no-reprint",
         "0",
     ]
@@ -123,16 +127,16 @@ def run_biliup_upload(
     print(f"  分区：音乐区 -> VOCALOID·UTAU (tid={tid})")
     print(f"  标签：{tag_str}")
     print(f"  动态：{dynamic}")
-    print("  命令：", " ".join(cmd))
 
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True)
     except FileNotFoundError:
-        raise FileNotFoundError()
+        raise FileNotFoundError(f"biliup 命令不存在: {biliup_exe}")
 
     out = (proc.stdout or "") + "\n" + (proc.stderr or "")
     print(out)
 
+    # 清理日志文件
     for log_name in ("download.log", "ds_update.log", "upload.log", "qrcode.png"):
         p = Path(log_name)
         if p.exists():
@@ -148,29 +152,32 @@ def run_biliup_upload(
 
     return out
 
+
 def extract_bvid(text: str) -> str:
+    """从输出中提取 BV 号"""
     m = re.search(r"(BV[0-9A-Za-z]{10})", text)
     if not m:
-        raise RuntimeError("未能从 biliup 输出中找到 BV 号，请检查上传输出。")
+        raise RuntimeError("未能从 biliup 输出中找到 BV 号")
     return m.group(1)
 
-def main() -> None:
-    cfg = load_upload_config()
 
-    # daily_video 目录
-    daily_dir = Path(
-        (cfg.get("daily_video") or {}).get("dir")
-    )
+def main() -> None:
+    # 加载配置
+    video_cfg = load_video_config()
+    upload_cfg = load_upload_config()
+
+    # 日刊视频目录
+    daily_dir = video_cfg.paths.daily_video_output
 
     # biliup 可执行文件
-    biliup_exe = (cfg.get("biliup") or {}).get("exe", "biliup")
+    biliup_exe = upload_cfg.get("biliup", {}).get("exe", "biliup")
 
     # 投稿参数
-    post_cfg = cfg.get("post") or {}
-    tid = int(post_cfg.get("tid"))
-    tags = post_cfg.get("tags")
-    desc = post_cfg.get("desc")
-    topic_id = post_cfg.get("topic_id")
+    post_cfg = upload_cfg.get("post", {})
+    tid = int(post_cfg.get("tid", 30))
+    tags = post_cfg.get("tags", [])
+    desc = post_cfg.get("desc", "")
+    topic_id = post_cfg.get("topic_id", 0)
 
     # 1. 找最新一期
     video_path, cover_path, issue, yyyymmdd = find_latest_issue_video(daily_dir)
@@ -178,9 +185,10 @@ def main() -> None:
     # 2. 标题 & 动态
     title = build_title(issue, yyyymmdd)
     dynamic = build_dynamic(issue, yyyymmdd)
+
     # 3. 投稿
     out = run_biliup_upload(
-        biliup_exe=biliup_exe,  
+        biliup_exe=biliup_exe,
         video=video_path,
         cover=cover_path,
         title=title,
@@ -194,7 +202,6 @@ def main() -> None:
     # 4. 提取 BV
     bvid = extract_bvid(out)
     print(f"\n投稿成功，BV 号：{bvid}")
-
     print("\n全部完成")
 
 

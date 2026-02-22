@@ -1,0 +1,110 @@
+# config/app.yaml
+# 应用程序统一配置
+
+# ==================== 基础目录 ====================
+dirs:
+  data: "data"
+  config: "config"
+  export: "export"
+  downloads: "downloads"
+
+# ==================== 数据路径 ====================
+paths:
+  # 核心数据
+  collected: "data/collected.xlsx"
+
+  # 快照
+  snapshot:
+    main: "data/snapshot/main"
+    new: "data/snapshot/new"
+
+  # 日刊
+  daily:
+    diff_old: "data/daily/diff/old"
+    diff_new: "data/daily/diff/new"
+    ranking_main: "data/daily/ranking/main"
+    ranking_new: "data/daily/ranking/new"
+
+  # 周刊
+  weekly:
+    main: "data/weekly/main"
+    new: "data/weekly/new"
+
+  # 月刊
+  monthly:
+    main: "data/monthly/main"
+    new: "data/monthly/new"
+
+  # 年刊
+  annual: "data/annual"
+
+  # 特殊
+  special:
+    data: "data/special/data"
+    ranking: "data/special/ranking"
+
+  # 特色功能
+  features:
+    achievement: "data/features/achievement"
+    milestone: "data/features/milestone"
+    history: "data/features/history"
+
+  # 下载缓存
+  downloads:
+    video: "downloads/videos"
+    image: "downloads/image_url"
+
+# ==================== 配置文件 ====================
+configs:
+  keywords: "config/keywords.json"
+  usecols: "config/usecols.json"
+  ai: "config/ai.yaml"
+  prompt_template: "config/prompt_template.txt"
+  exclude_singers: "config/exclude_singers.yaml"
+  special: "config/special.yaml"
+  sftp: "config/sftp.yaml"
+
+# ==================== 文件名模板 ====================
+templates:
+  snapshot_main: "{date}.xlsx"
+  snapshot_new: "新曲{date}.xlsx"
+  diff: "{new_date}与{old_date}.xlsx"
+  diff_new: "新曲{new_date}与新曲{old_date}.xlsx"
+  ranking_new: "新曲榜{new_date}与{old_date}.xlsx"
+  combined: "{new_date}与{old_date}.xlsx"
+
+# ==================== 服务配置 ====================
+
+# 日刊
+daily:
+  threshold: 2000
+
+# 周刊
+weekly:
+  start_date: "2024-09-07"
+  start_index: 1
+  new_song_days: 7
+
+# 月刊
+monthly:
+  start_year: 2024
+  start_month: 9
+  start_index: 1
+
+# 成就检测
+achievement:
+  start_file: "2024-09-07.xlsx"
+  start_index: 1
+
+# 里程碑检测
+milestone:
+  # 使用 paths.snapshot.main 和 paths.features.milestone
+
+# 重复检测
+duplicate:
+  hash_threshold: 15
+  date_threshold_days: 3
+
+# AI标注
+ai_tagger:
+  # 配置在 config/ai.yaml

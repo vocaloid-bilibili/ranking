@@ -1,47 +1,46 @@
 # 抓取特殊数据.py
 import asyncio
-from bilibili_api import search
-from pathlib import Path
 import yaml
-import json
 
-from src.bilibili_scraper import Config, SearchOptions, BilibiliScraper, SearchRestrictions
-from src.bilibili_api_client import BilibiliApiClient
+from common.config import get_paths
+from common.models import ScraperConfig, SearchOptions
+from bilibili.client import BilibiliClient
+from bilibili.scraper import BilibiliScraper
 
-
-with open('config/特殊.yaml', 'r', encoding='utf-8') as file:
-    config_file = yaml.safe_load(file)
-
-config = Config(
-    KEYWORDS= config_file['keywords'],
-    OUTPUT_DIR=Path('特殊/特殊原始数据'),
-    NAME= config_file['name']
-)
-
-restrictions = SearchRestrictions(
-)
-
-search_options = [SearchOptions(
-    order_type = search.OrderVideo.PUBDATE,
-    time_start = "2025-09-27",
-    time_end = "2025-11-27",
-    video_zone_type = 0 )
-]
 
 async def main():
-    api_client = BilibiliApiClient(config=config)
-    scraper = BilibiliScraper(
-        api_client=api_client,
-        mode='special', 
-        config=config, 
-        search_options=search_options, 
-        search_restrictions=restrictions,
+    paths = get_paths()
+
+    cfg = yaml.safe_load(paths.special_config.read_text(encoding="utf-8"))
+
+    config = ScraperConfig(
+        KEYWORDS=cfg["keywords"],
+        OUTPUT_DIR=paths.special_data,
+        NAME=cfg["name"],
     )
+
+    search_options = [
+        SearchOptions(
+            time_start=cfg.get("time_start", "2025-09-27"),
+            time_end=cfg.get("time_end", "2025-11-27"),
+            video_zone_type=cfg.get("video_zone_type", 0),
+        )
+    ]
+
+    client = BilibiliClient(config=config)
+    scraper = BilibiliScraper(
+        client=client,
+        mode="special",
+        config=config,
+        search_options=search_options,
+    )
+
     try:
         videos = await scraper.process_new_songs()
         await scraper.save_to_excel(videos)
     finally:
-        await api_client.close_session()
+        await client.close()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
