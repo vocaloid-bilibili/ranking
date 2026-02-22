@@ -31,8 +31,14 @@ def format_tid(tid) -> str:
     """将 tid 转换为 tname"""
     if pd.isna(tid):
         return ""
+
+    try:
+        tid_int = int(float(tid))
+    except (ValueError, TypeError):
+        return str(tid)
+
     tid_map = _load_tid_map()
-    return tid_map.get(int(tid), str(int(tid)))
+    return tid_map.get(tid_int, str(tid_int))
 
 
 # 列格式化器映射
