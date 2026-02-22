@@ -1,4 +1,4 @@
-# video/daily_video_flow.py
+# video/flow.py
 """日刊视频生成主流程"""
 
 import shutil
@@ -16,9 +16,10 @@ from bilibili.client import BilibiliClient
 from video.config import VideoConfig, load_video_config
 from video.climax import find_climax_segment
 from video.issue import Issue
-from video.cover import Cover
+from video.cover import CoverGenerator
+from video.card import CardRenderer
 from video.achievement import Achievement
-from video.clip import ClipFlow
+from video.clip import ClipGenerator
 
 
 class DailyVideoFlow:
@@ -26,8 +27,6 @@ class DailyVideoFlow:
 
     def __init__(self, cfg: VideoConfig = None) -> None:
         self.cfg = cfg or load_video_config()
-
-        # 确保目录存在
         self.cfg.paths.ensure_dirs()
 
         # API 客户端
@@ -44,14 +43,19 @@ class DailyVideoFlow:
             first_issue_date=self.cfg.video.first_issue_date,
         )
 
-        # 封面生成器
-        self.cover_mgr = Cover(
-            videos_cache=self.cfg.paths.videos_cache,
+        # 卡片渲染器
+        self.card_renderer = CardRenderer(
+            cache_dir=self.cfg.paths.videos_cache,
             font_regular=self.cfg.fonts.regular,
             font_bold=self.cfg.fonts.bold,
             card_width=self.cfg.ui.card_width,
             card_height=self.cfg.ui.card_height,
             card_radius=self.cfg.ui.card_radius,
+        )
+
+        # 封面生成器
+        self.cover_gen = CoverGenerator(
+            font_bold=self.cfg.fonts.bold,
             weekday_colors=self.cfg.weekday_colors,
             ffmpeg_bin=self.cfg.ffmpeg.bin,
         )
@@ -60,16 +64,14 @@ class DailyVideoFlow:
         self.achieve_clipper = Achievement(
             milestone_dir=self.cfg.paths.milestone,
             config_dir=self.cfg.project_root / "config",
-            image_factory=self.cover_mgr,
+            card_renderer=self.card_renderer,
         )
 
         # 视频片段生成器
-        self.clip_flow = ClipFlow(
+        self.clip_gen = ClipGenerator(
             api_client=self.api_client,
-            daily_video_dir=self.cfg.paths.daily_video_output,
-            icon_dir=self.cfg.paths.icon_dir,
-            font_regular=self.cfg.fonts.regular,
-            font_bold=self.cfg.fonts.bold,
+            output_dir=self.cfg.paths.daily_video_output,
+            font_file=self.cfg.fonts.regular,
             ffmpeg_bin=self.cfg.ffmpeg.bin,
         )
 
@@ -82,7 +84,6 @@ class DailyVideoFlow:
         self.ui = self.cfg.ui
 
     async def close(self):
-        """关闭资源"""
         await self.api_client.close_session()
 
     def run(self) -> None:
@@ -174,7 +175,6 @@ class DailyVideoFlow:
             logger.error(f"生成封面片头视频出错: {e}")
 
     def _cleanup_temp_files(self, clip_paths: List[Path]) -> None:
-        """清理临时文件"""
         for p in clip_paths:
             if p.exists():
                 p.unlink()
@@ -183,7 +183,6 @@ class DailyVideoFlow:
             shutil.rmtree(temp_text_root, ignore_errors=True)
 
     def _generate_clips(self, rows, issue_date) -> Dict[int, Path]:
-        """生成视频片段"""
         tasks = [(i + 1, r.to_dict()) for i, r in enumerate(rows)]
         res = {}
         with ThreadPoolExecutor(max_workers=6) as ex:
@@ -195,7 +194,6 @@ class DailyVideoFlow:
         return res
 
     def _worker(self, task, issue_date):
-        """处理单个视频片段"""
         idx, r_dict = task
         row = pd.Series(r_dict)
         current_duration = self.clip_duration
@@ -204,21 +202,20 @@ class DailyVideoFlow:
         if rank_val <= 3:
             current_duration = 20.0
 
-        path = self.clip_flow.generate_clip(row, idx, current_duration, issue_date)
+        path = self.clip_gen.generate(row, idx, current_duration, issue_date)
         return idx, path
 
     def _generate_covers(self, rows, date_str, idx):
-        """生成封面"""
-        urls_16_9 = self.cover_mgr.select_cover_urls_grid(rows)
-        self.cover_mgr.generate_grid_cover(
+        urls_16_9 = self.cover_gen.select_urls(rows, layout="grid")
+        self.cover_gen.generate_grid(
             urls_16_9,
             self.daily_video_dir / f"{idx}_{date_str}_cover.jpg",
             issue_date=date_str,
             issue_index=idx,
         )
 
-        urls_3_4 = self.cover_mgr.select_cover_urls_3_4(rows)
-        self.cover_mgr.generate_vertical_cover(
+        urls_3_4 = self.cover_gen.select_urls(rows, layout="vertical")
+        self.cover_gen.generate_vertical(
             urls_3_4,
             self.daily_video_dir / f"{idx}_{date_str}_cover_3-4.jpg",
             issue_date=date_str,
@@ -226,7 +223,6 @@ class DailyVideoFlow:
         )
 
     def _generate_achievement_video(self, ex_date, is_date, idx) -> Optional[Path]:
-        """生成成就视频"""
         rows = self.achieve_clipper.load_rows(ex_date, is_date)
 
         out_path = self.daily_video_dir / f"tmp_achievement_{is_date}.mp4"
@@ -264,7 +260,7 @@ class DailyVideoFlow:
         if bgm_bvid:
             v_path = self.api_client.download_video(bgm_bvid)
             if v_path:
-                a_path = self.api_client.ensure_audio(bgm_bvid, v_path)
+                a_path = self.api_client.extract_audio(bgm_bvid, v_path)
                 if a_path:
                     start, _ = find_climax_segment(
                         str(a_path), clip_duration=total_duration
@@ -325,7 +321,7 @@ class DailyVideoFlow:
                     frame.paste(strip_img, (0, paste_y), strip_img)
 
                 if header_opacity > 0:
-                    header_img = self.cover_mgr.create_header(
+                    header_img = self.card_renderer.create_header(
                         screen_w,
                         screen_h,
                         header_opacity,
@@ -351,7 +347,6 @@ class DailyVideoFlow:
             return None
 
     def _concat_clips(self, clip_paths: List[Path], output_path: Path) -> None:
-        """拼接视频片段"""
         cmd = [self.ffmpeg_bin, "-y"]
         for p in clip_paths:
             cmd += ["-i", str(p)]
@@ -366,7 +361,6 @@ class DailyVideoFlow:
         subprocess.run(cmd, check=True)
 
     def _add_x264_encode_args(self, cmd: List[str]) -> None:
-        """添加 x264 编码参数"""
         cmd.extend(
             [
                 "-c:v",

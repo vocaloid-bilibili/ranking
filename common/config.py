@@ -85,6 +85,7 @@ class Paths:
     downloads_video: Path = field(default_factory=lambda: Path("downloads/videos"))
     downloads_image: Path = field(default_factory=lambda: Path("downloads/image_url"))
     export: Path = field(default_factory=lambda: Path("export"))
+    export_json: Path = field(default_factory=lambda: Path("export/json"))
     keywords: Path = field(default_factory=lambda: Path("config/keywords.json"))
     usecols: Path = field(default_factory=lambda: Path("config/usecols.json"))
     ai_config: Path = field(default_factory=lambda: Path("config/ai.yaml"))
@@ -144,6 +145,7 @@ class Paths:
                 "downloads", "image", default="downloads/image_url"
             ),
             export=Path(cfg.get("dirs", "export", default="export")),
+            export_json=Path(cfg.get("dirs", "export", default="export")) / "json",
             keywords=Path(configs.get("keywords", "config/keywords.json")),
             usecols=Path(configs.get("usecols", "config/usecols.json")),
             ai_config=Path(configs.get("ai", "config/ai.yaml")),
@@ -348,10 +350,6 @@ def get_app_config() -> AppConfig:
 
 def get_paths() -> Paths:
     return get_app_config().paths
-
-
-def get_templates() -> Templates:
-    return get_app_config().templates
 
 
 # ==================== 列配置 ====================

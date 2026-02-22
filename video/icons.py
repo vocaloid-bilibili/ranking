@@ -48,9 +48,16 @@ class IconRenderer:
 
         viewBox = icon_data.get("viewBox", "0 0 24 24")
         path_d = icon_data.get("path", "")
+        fill_rule = icon_data.get("fillRule", "")
+        clip_rule = icon_data.get("clipRule", "")
+        path_attrs = f'd="{path_d}" fill="{color}"'
+        if fill_rule:
+            path_attrs += f' fill-rule="{fill_rule}"'
+        if clip_rule:
+            path_attrs += f' clip-rule="{clip_rule}"'
 
         svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="{viewBox}" width="{size}" height="{size}">
-            <path d="{path_d}" fill="{color}"/>
+            <path {path_attrs}/>
         </svg>"""
 
         temp_dir = self._ensure_temp_dir()

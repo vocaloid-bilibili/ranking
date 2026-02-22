@@ -2,7 +2,7 @@
 """记录处理模块 - 批量计算评分"""
 
 from datetime import datetime
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 import pandas as pd
 
 from common.logger import logger

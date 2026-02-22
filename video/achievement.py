@@ -8,21 +8,22 @@ import yaml
 from PIL import Image
 
 from common.logger import logger
-from video.cover import Cover
+from video.card import CardRenderer
 
 
 class Achievement:
     """成就视频生成"""
 
-    def __init__(self, milestone_dir: Path, config_dir: Path, cover_factory: Cover):
+    def __init__(
+        self, milestone_dir: Path, config_dir: Path, card_renderer: CardRenderer
+    ):
         self.milestone_dir = milestone_dir
         self.milestone_100k_dir = milestone_dir / "100k"
         self.config_dir = config_dir
-        self.cover_factory = cover_factory
+        self.card_renderer = card_renderer
 
     def load_rows(self, excel_date_str: str, issue_date_str: str) -> List[pd.Series]:
         """加载十万记录数据"""
-        # 固定路径：milestone/100k/十万记录{new_date}与{old_date}.xlsx
         filename = f"十万记录{excel_date_str}与{issue_date_str}.xlsx"
         path = self.milestone_100k_dir / filename
 
@@ -48,7 +49,7 @@ class Achievement:
         if not rows:
             return Image.new("RGBA", (width, 100), (0, 0, 0, 0)), 100
 
-        cards = [self.cover_factory.create_card(row) for row in rows]
+        cards = [self.card_renderer.create_card(row) for row in rows]
 
         card_h = cards[0].height
         card_w = cards[0].width

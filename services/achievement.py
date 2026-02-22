@@ -11,7 +11,7 @@ from enum import Enum
 import pandas as pd
 
 from common.logger import logger
-from common.io import save_excel, load_excel
+from common.io import save_excel
 from common.config import get_app_config, get_paths
 
 

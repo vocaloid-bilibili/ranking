@@ -1,4 +1,4 @@
-# utils/climax_clipper.py
+# utils/climax.py
 import subprocess
 import tempfile
 from pathlib import Path

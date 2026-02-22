@@ -43,12 +43,10 @@ class ClipGenerator:
 
         logger.info(f"处理 #{clip_index} | {row.get('title', '')}")
 
-        # 获取片段
         segment = self._ensure_segment(bvid, clip_duration)
         if not segment:
             return None
 
-        # 构建叠加层命令
         overlay_args, output_path = build_overlay_cmd(
             segment_path=segment,
             row=row,
@@ -58,7 +56,6 @@ class ClipGenerator:
             font_file=self.font_file,
         )
 
-        # 执行
         cmd = [self.ffmpeg_bin] + overlay_args
         self._add_encode_args(cmd)
         cmd += ["-movflags", "+faststart", str(output_path), "-loglevel", "error"]
@@ -79,7 +76,7 @@ class ClipGenerator:
         if cached.exists():
             return cached
 
-        audio = self.api_client.ensure_audio(bvid, video)
+        audio = self.api_client.extract_audio(bvid, video)
         if not audio:
             return None
 
@@ -88,7 +85,6 @@ class ClipGenerator:
         except:
             start = 0.0
 
-        # 提取片段
         fade_out = max(duration - 1.0, 0.0)
         cmd = [
             self.ffmpeg_bin,

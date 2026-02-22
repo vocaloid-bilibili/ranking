@@ -42,7 +42,8 @@ class BaseExporter(ABC):
     def __init__(self, paths: Paths = None):
         self.paths = paths or get_paths()
         self.config = get_app_config()
-        self.paths.export.mkdir(parents=True, exist_ok=True)
+        self.json_output_dir = self.paths.export_json
+        self.json_output_dir.mkdir(parents=True, exist_ok=True)
 
     def read_excel_safe(self, path: Path, sheet_name=0) -> Optional[pd.DataFrame]:
         """安全读取 Excel"""
@@ -182,7 +183,7 @@ class BaseExporter(ABC):
 
     def save_json(self, data: Dict, filename: str):
         """保存 JSON"""
-        output_path = self.paths.export / filename
+        output_path = self.json_output_dir / filename
         try:
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=4, cls=NpEncoder)
