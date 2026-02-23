@@ -41,9 +41,24 @@ def format_tid(tid) -> str:
     return tid_map.get(tid_int, str(tid_int))
 
 
+def format_pubdate(pubdate) -> str:
+    """格式化发布时间"""
+    if pd.isna(pubdate):
+        return ""
+
+    if isinstance(pubdate, str):
+        return pubdate
+
+    try:
+        return pubdate.strftime("%Y-%m-%d %H:%M:%S")
+    except (AttributeError, ValueError):
+        return str(pubdate)
+
+
 # 列格式化器映射
 COLUMN_FORMATTERS = {
     "tid": format_tid,
+    "pubdate": format_pubdate,
 }
 
 
@@ -74,8 +89,6 @@ def format_duration(seconds: int) -> str:
 
 def format_aid(aid) -> str:
     """格式化aid（防止科学计数法，保持整数字符串）"""
-    import pandas as pd
-
     if pd.isna(aid) or str(aid).strip() == "":
         return ""
     try:
