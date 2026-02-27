@@ -143,6 +143,7 @@ class ScraperConfig:
     MIN_TOTAL_VIEW: int = 10000
     BASE_THRESHOLD: int = 100
     HOT_RANK_CATE_ID: int = 30
+    LOW_VIEW_STOP_COUNT: int = 2
     LOCAL_METADATA_FIELDS: List[str] = field(
         default_factory=lambda: [
             "bvid",

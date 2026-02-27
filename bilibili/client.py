@@ -306,6 +306,8 @@ class BilibiliClient:
     ) -> List[Dict[str, Any]]:
         all_videos = []
         page = 1
+        consecutive_empty = 0
+
         while True:
             await self.session_mgr.check_and_restart()
             url = (
@@ -314,19 +316,37 @@ class BilibiliClient:
                 f"&cate_id={cate_id}&page={page}&pagesize=50&time_from={time_from}&time_to={time_to}"
             )
             logger.info(f"{time_from}~{time_to}, 第{page}页...")
+
             try:
                 data = await self.retry.retry_async(self._fetch_json, url)
             except Exception as e:
                 logger.error(f"hot_rank 请求失败: {e}")
                 break
+
             if not data or data.get("code") != 0:
+                logger.warning(
+                    f"第{page}页返回异常: code={data.get('code') if data else 'None'}"
+                )
                 break
+
             videos = data.get("data", {}).get("result")
+
             if not videos:
-                break
+                consecutive_empty += 1
+                logger.warning(
+                    f"第{page}页返回0条 ({consecutive_empty}/{self.config.MAX_RETRIES})"
+                )
+                if consecutive_empty >= self.config.MAX_RETRIES:
+                    logger.warning(f"连续{consecutive_empty}页为空，停止翻页")
+                    break
+                await asyncio.sleep(self.config.SLEEP_TIME * 2)
+                continue
+
+            consecutive_empty = 0
             all_videos.extend(videos)
             page += 1
             await asyncio.sleep(self.config.SLEEP_TIME)
+
         return all_videos
 
     # ==================== 下载 ====================

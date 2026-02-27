@@ -199,8 +199,9 @@ class BilibiliScraper:
         logger.info(f"时间范围：{self.end_date:%Y-%m-%d} 至 {self.start_date:%Y-%m-%d}")
         all_videos = []
         current_date = self.start_date
+        should_stop_all = False
 
-        while current_date >= self.end_date:
+        while current_date >= self.end_date and not should_stop_all:
             next_date = max(current_date - timedelta(days=90), self.end_date)
             time_from = next_date.strftime("%Y%m%d")
             time_to = current_date.strftime("%Y%m%d")
@@ -208,9 +209,13 @@ class BilibiliScraper:
             raw_videos = await self.client.get_newlist_rank_videos(
                 self.config.HOT_RANK_CATE_ID, time_from, time_to
             )
+
             if raw_videos:
-                filtered = self._filter_hot_rank_videos(raw_videos)
+                filtered, should_stop = self._filter_hot_rank_videos(raw_videos)
                 all_videos.extend(filtered)
+                if should_stop:
+                    logger.info("达到低播放量停止条件，结束采集")
+                    should_stop_all = True
 
             current_date = next_date - timedelta(days=1)
             await asyncio.sleep(2)
@@ -295,18 +300,26 @@ class BilibiliScraper:
         stats = await self.client.get_batch_details(int_aids)
         return [transform_api_response(info) for info in stats.values()]
 
-    def _filter_hot_rank_videos(self, raw_videos):
+    def _filter_hot_rank_videos(self, raw_videos) -> tuple[List[Dict], bool]:
+
         filtered = []
+        low_view_count = 0
+
         for video in raw_videos:
             view = int(video.get("play", 0))
-            if 0 < view < self.config.MIN_TOTAL_VIEW:
-                break
             bvid = video.get("bvid")
+
+            if 0 < view < self.config.MIN_TOTAL_VIEW:
+                low_view_count += 1
+                continue
+
             if not bvid or bvid in self.existing_bvids:
                 continue
+
             duration = int(video.get("duration", 0))
             if duration <= self.config.MIN_VIDEO_DURATION:
                 continue
+
             filtered.append(
                 {
                     "title": clean_text(video.get("title", "")),
@@ -318,7 +331,10 @@ class BilibiliScraper:
                     "image_url": video.get("pic", ""),
                 }
             )
-        return filtered
+
+        should_stop = low_view_count >= self.config.LOW_VIEW_STOP_COUNT
+
+        return filtered, should_stop
 
     async def save_to_excel(self, videos, usecols=None):
         if not videos:
