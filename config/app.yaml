@@ -157,8 +157,10 @@ special:
 
 # 历史回顾
 history:
-  input_path: "data/weekly/main/{old_date}.xlsx"
-  output_path: "data/features/history/{target_date}.xlsx"
+  input_paths:
+    weekly_ranking: "data/weekly/main/{old_date}.xlsx"
+  output_paths:
+    history_file: "data/features/history/历史{target_date}.xlsx"
 
 # AI标注
 ai_tagger:

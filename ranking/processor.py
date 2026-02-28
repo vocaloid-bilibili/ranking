@@ -398,11 +398,11 @@ class RankingProcessor:
         self.data_loader.save(df, output_path)
 
     def run_history(self, dates: dict):
-        input_path = self._get_path("input_path", **dates)
+        input_path = self._get_path("weekly_ranking", "input_paths", **dates)
         df = pd.read_excel(input_path)
 
         history_cols = self.column_config.get_columns("history")
         df = df[df["rank"] <= 5][history_cols].copy()
 
-        output_path = self._get_path("output_path", **dates)
-        self.data_loader.save(df, output_path)
+        output_path = self._get_path("history_file", "output_paths", **dates)
+        self.data_loader.save(df, output_path, "history")

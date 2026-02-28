@@ -241,7 +241,6 @@ class AchievementManager:
             df = pd.DataFrame(rows, columns=self.OUTPUT_COLS)
 
         save_excel(df, output_file)
-        logger.info(f"已保存成就报告: {output_file.name}")
 
     def _get_song_details(
         self, name: str, details: pd.DataFrame
