@@ -89,10 +89,12 @@ class RecordProcessor:
         ranking_type: RankingType,
         use_old_data: bool = False,
         old_time_threshold: Optional[str] = None,
+        allow_missing_old: bool = False,
     ):
         self.ranking_type = ranking_type
         self.use_old_data = use_old_data
         self.old_time_threshold = old_time_threshold
+        self.allow_missing_old = allow_missing_old
         self._old_index: Dict[str, pd.Series] = {}
         self._collected_index: Dict[str, pd.Series] = {}
 
@@ -107,6 +109,9 @@ class RecordProcessor:
 
         if bvid in self._old_index:
             return VideoStats.from_dict(self._old_index[bvid].to_dict())
+
+        if self.allow_missing_old:
+            return VideoStats()
 
         # 检查是否为周期内新视频
         if self.old_time_threshold:
@@ -174,6 +179,7 @@ def process_records(
     collected_data: Optional[pd.DataFrame] = None,
     ranking_type: str = "daily",
     old_time_toll: Optional[str] = None,
+    allow_missing_old: bool = False,
 ) -> pd.DataFrame:
     """便捷函数"""
     type_map = {
@@ -187,5 +193,6 @@ def process_records(
         ranking_type=type_map.get(ranking_type, RankingType.DAILY),
         use_old_data=use_old_data,
         old_time_threshold=old_time_toll,
+        allow_missing_old=allow_missing_old,
     )
     return processor.process(new_data, old_data, collected_data)

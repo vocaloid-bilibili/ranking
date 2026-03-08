@@ -322,7 +322,6 @@ class RankingProcessor:
             asyncio.to_thread(pd.read_excel, paths_info["old"]),
             asyncio.to_thread(pd.read_excel, paths_info["new"]),
         )
-
         df = process_records(
             new_data=new_data,
             old_data=old_data,
@@ -330,6 +329,7 @@ class RankingProcessor:
             collected_data=collected_data,
             ranking_type="daily",
             old_time_toll=dates["old_date"],
+            allow_missing_old=(task_type == "new_song"),
         )
 
         if threshold:
