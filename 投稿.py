@@ -129,7 +129,13 @@ def run_biliup_upload(
     print(f"  动态：{dynamic}")
 
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True)
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
     except FileNotFoundError:
         raise FileNotFoundError(f"biliup 命令不存在: {biliup_exe}")
 
