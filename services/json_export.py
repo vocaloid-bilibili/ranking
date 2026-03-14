@@ -122,10 +122,10 @@ class BaseExporter(ABC):
                         firstname_map[name] = (points, song_name)
 
         result = [
-            {"name": k, "score": v, "firstname": firstname_map.get(k, (0, ""))[1]}
+            {"name": k, "point": v, "firstname": firstname_map.get(k, (0, ""))[1]}
             for k, v in stats_map.items()
         ]
-        result.sort(key=lambda x: x["score"], reverse=True)
+        result.sort(key=lambda x: x["point"], reverse=True)
 
         return [{**item, "rank": idx + 1} for idx, item in enumerate(result[:limit])]
 
