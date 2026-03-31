@@ -24,7 +24,7 @@ def transform_api_response(api_data: Dict[str, Any]) -> Dict[str, Any]:
         "bvid": api_data.get("bvid", ""),
         "aid": str(api_data.get("id", "")),
         "title": clean_text(api_data.get("title", "")),
-        "uploader": api_data.get("upper", {}).get("name", ""),
+        "uploader": api_data.get("upper", {}).get("name", "-"),
         "copyright": api_data.get("copyright", 1),
         "pubdate": datetime.fromtimestamp(api_data.get("pubtime", 0)).strftime(
             "%Y-%m-%d %H:%M:%S"

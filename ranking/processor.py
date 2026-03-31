@@ -24,6 +24,7 @@ from ranking.rank_ops import (
     update_rank_change,
     update_board_count,
     keep_highest_score,
+    _build_bvid_name_bridge,
 )
 from ranking.record import process_records
 
@@ -104,11 +105,16 @@ class RankingProcessor:
         old_data = self.data_loader.load_merged_data(date=dates["old_date"])
         new_data = self.data_loader.load_toll_data(date=dates["new_date"])
 
+        collected_data = None
+        if self.paths.collected.exists():
+            collected_data = pd.read_excel(self.paths.collected)
+
         df = process_records(
             new_data=new_data,
             old_data=old_data,
             use_old_data=True,
             old_time_toll=dates["old_date"],
+            collected_data=collected_data,
             ranking_type=self._get_period_config("ranking_type"),
         )
 
@@ -276,7 +282,11 @@ class RankingProcessor:
         prev_rank_path = self._get_path("previous_ranking", "input_paths", **dates)
 
         new_ranking = pd.read_excel(diff_path)
-        prev_ranking = pd.read_excel(prev_rank_path)[["name", "rank"]]
+        prev_cols = ["name", "rank"]
+        prev_full = pd.read_excel(prev_rank_path)
+        if "bvid" in prev_full.columns:
+            prev_cols.append("bvid")
+        prev_ranking = prev_full[prev_cols]
 
         new_ranking = keep_highest_score(new_ranking)
         new_ranking = self._filter_rising_songs(new_ranking, prev_ranking)
@@ -293,8 +303,20 @@ class RankingProcessor:
         df = df.sort_values(by="point", ascending=False).reset_index(drop=True)
         df["rank"] = df.index + 1
 
-        merged = df.merge(prev_df, on="name", how="left", suffixes=("", "_prev"))
+        merged = df.merge(
+            prev_df[["name", "rank"]], on="name", how="left", suffixes=("", "_prev")
+        )
         merged["rank_prev"] = merged["rank_prev"].fillna(1000)
+
+        if "bvid" in df.columns and "bvid" in prev_df.columns:
+            bridge = _build_bvid_name_bridge(df, prev_df)
+            if bridge:
+                prev_rank_dict = prev_df.set_index("name")["rank"].to_dict()
+                for idx, row in merged.iterrows():
+                    if row["rank_prev"] == 1000:
+                        bridged = bridge.get(row["name"])
+                        if bridged and bridged in prev_rank_dict:
+                            merged.at[idx, "rank_prev"] = prev_rank_dict[bridged]
 
         rising = merged[merged["rank"] < merged["rank_prev"]].copy()
         return rising.drop(columns=["rank_prev"], errors="ignore")
@@ -355,7 +377,7 @@ class RankingProcessor:
                     ),
                     "output": self._get_path("main_diff", "output_paths", **dates),
                 },
-                None,
+                self._get_path("collected_songs", "input_paths"),
                 None,
             )
         else:
