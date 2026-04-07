@@ -44,6 +44,20 @@ def get_monthly_dates() -> DateRange:
     )
 
 
+def get_cover_weekly_dates() -> DateRange:
+    """计算翻唱周刊日期（周三周期）"""
+    today = datetime.now()
+    days_since_wed = (today.weekday() - 2 + 7) % 7
+    new_day = today - timedelta(days=days_since_wed)
+    old_day = new_day - timedelta(days=7)
+    return DateRange(
+        new_date=new_day.strftime("%Y%m%d"),
+        old_date=old_day.strftime("%Y%m%d"),
+        target_date=new_day.strftime("%Y-%m-%d"),
+        previous_date=old_day.strftime("%Y-%m-%d"),
+    )
+
+
 def get_daily_dates() -> Dict[str, str]:
     """计算日刊日期"""
     now_day = (datetime.now() - timedelta(days=1)).replace(

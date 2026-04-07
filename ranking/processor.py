@@ -16,6 +16,7 @@ from common.dates import (
     get_daily_dates,
     get_daily_new_song_dates,
     get_history_dates,
+    get_cover_weekly_dates,
 )
 from common.logger import logger
 from common.merge import DataFrameMerger
@@ -48,6 +49,7 @@ class RankingProcessor:
             "daily_new_song": self.run_daily_new_song,
             "special": self.run_special,
             "history": self.run_history,
+            "cover_weekly": self.run_periodic_ranking,
         }
 
         self._date_methods = {
@@ -57,6 +59,7 @@ class RankingProcessor:
             "daily_combination": get_daily_new_song_dates,
             "daily_new_song": get_daily_new_song_dates,
             "history": get_history_dates,
+            "cover_weekly": get_cover_weekly_dates,
         }
 
     def _get_period_config(self, key: str, default=None):
@@ -75,6 +78,40 @@ class RankingProcessor:
         if hasattr(result, "__dataclass_fields__"):
             return {k: getattr(result, k) for k in result.__dataclass_fields__}
         return result
+
+    def _apply_data_filter(
+        self,
+        old_data: pd.DataFrame,
+        new_data: pd.DataFrame,
+        filter_config: dict,
+        collected_data: pd.DataFrame = None,
+    ) -> tuple:
+        """
+        根据配置中的 filter 字段过滤数据。
+        先用 collected 补全元数据，再按条件筛选。
+        """
+        if collected_data is not None and not collected_data.empty:
+            for field_name in filter_config:
+                if field_name not in collected_data.columns:
+                    continue
+                field_map = (
+                    collected_data.dropna(subset=[field_name])
+                    .drop_duplicates(subset=["bvid"])
+                    .set_index("bvid")[field_name]
+                    .to_dict()
+                )
+                for df in [old_data, new_data]:
+                    if field_name in df.columns and "bvid" in df.columns:
+                        mapped = df["bvid"].map(field_map)
+                        df[field_name] = mapped.fillna(df[field_name])
+
+        for field_name, value in filter_config.items():
+            if field_name in new_data.columns:
+                new_data = new_data[new_data[field_name] == value].copy()
+            if field_name in old_data.columns:
+                old_data = old_data[old_data[field_name] == value].copy()
+
+        return old_data, new_data
 
     async def run(self, **kwargs):
         handler = self._dispatch_map.get(self.period)
@@ -95,6 +132,7 @@ class RankingProcessor:
             "annual": "dates",
             "history": "dates",
             "special": "song_data",
+            "cover_weekly": "dates",
         }
         if period in required and required[period] not in kwargs:
             raise ValueError(f"'{period}' 模式需要 '{required[period]}' 参数")
@@ -109,6 +147,11 @@ class RankingProcessor:
         if self.paths.collected.exists():
             collected_data = pd.read_excel(self.paths.collected)
 
+        data_filter = self._get_period_config("filter")
+        if data_filter:
+            old_data, new_data = self._apply_data_filter(
+                old_data, new_data, data_filter, collected_data
+            )
         df = process_records(
             new_data=new_data,
             old_data=old_data,

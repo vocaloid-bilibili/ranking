@@ -79,6 +79,9 @@ class Paths:
     annual: Path = field(default_factory=lambda: Path("data/annual"))
     special_data: Path = field(default_factory=lambda: Path("data/special/data"))
     special_ranking: Path = field(default_factory=lambda: Path("data/special/ranking"))
+    cover_weekly_main: Path = field(
+        default_factory=lambda: Path("data/cover-weekly/main")
+    )
     achievement: Path = field(default_factory=lambda: Path("data/features/achievement"))
     milestone: Path = field(default_factory=lambda: Path("data/features/milestone"))
     history: Path = field(default_factory=lambda: Path("data/features/history"))
@@ -132,6 +135,9 @@ class Paths:
             special_data=get_path("special", "data", default="data/special/data"),
             special_ranking=get_path(
                 "special", "ranking", default="data/special/ranking"
+            ),
+            cover_weekly_main=get_path(
+                "cover_weekly", "main", default="data/cover-weekly/main"
             ),
             achievement=get_path(
                 "features", "achievement", default="data/features/achievement"

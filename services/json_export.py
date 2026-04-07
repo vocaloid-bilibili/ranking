@@ -800,6 +800,245 @@ class MonthlyExporter(BaseExporter):
         self.save_json(data, f"{self.target_month}.json")
 
 
+# ==================== 翻唱周刊导出器 ====================
+
+
+class CoverWeeklyExporter(BaseExporter):
+    """翻唱周刊JSON导出"""
+
+    def __init__(self, target_date: datetime.date = None, paths: Paths = None):
+        super().__init__(paths)
+        self.target_date = target_date or self._get_last_wednesday()
+        self.date_hyphen = self.target_date.strftime("%Y-%m-%d")
+        self.date_compact = self.target_date.strftime("%Y%m%d")
+        logger.info(f"翻唱周刊导出目标日期: {self.date_hyphen}")
+
+    # ---------- 日期与期号 ----------
+
+    def _get_last_wednesday(self) -> datetime.date:
+        today = datetime.date.today()
+        days_to_subtract = (today.weekday() - 2) % 7  # Wednesday = weekday 2
+        return today - datetime.timedelta(days=days_to_subtract)
+
+    def _get_issue_index(self) -> int:
+        start_date_str = self.config.get(
+            "cover_weekly", "start_date", default="2026-04-02"
+        )
+        start_date = datetime.datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        start_index = self.config.get("cover_weekly", "start_index", default=1)
+        days_diff = (self.target_date - start_date).days
+        return (days_diff // 7) + start_index
+
+    # ---------- 路径与数据读取 ----------
+
+    def _get_ranking_path(self, date_str: str) -> Path:
+        """翻唱周刊文件路径：data/cover-weekly/main/翻唱{date}.xlsx"""
+        return self.paths.cover_weekly_main / f"翻唱{date_str}.xlsx"
+
+    def _get_last_week_data(self) -> Optional[pd.DataFrame]:
+        last_week = self.target_date - datetime.timedelta(days=7)
+        return self.read_excel_safe(
+            self._get_ranking_path(last_week.strftime("%Y-%m-%d"))
+        )
+
+    def _get_last_week_op(self) -> Dict:
+        df = self._get_last_week_data()
+        if df is None or df.empty:
+            return {}
+
+        row = df[df["rank"] == 1]
+        if row.empty:
+            return {}
+
+        rec = row.iloc[0]
+        return {
+            "title": rec.get("title", ""),
+            "bvid": rec.get("bvid", ""),
+            "author": rec.get("author", ""),
+            "pubdate": rec.get("pubdate", ""),
+            "image_url": rec.get("image_url", ""),
+        }
+
+    # ---------- 统计 ----------
+
+    def calculate_stats(self, df_total: pd.DataFrame) -> Dict:
+        """计算统计数据（无新曲榜，简化版）"""
+        stats = {}
+        df_top100 = df_total.head(100)
+
+        if "point" in df_total.columns:
+            stats["count_over_500k"] = len(df_total[df_total["point"] >= 500000])
+            stats["count_over_100k"] = len(df_total[df_total["point"] >= 100000])
+            stats["count_over_50k"] = len(df_total[df_total["point"] >= 50000])
+        else:
+            stats["count_over_500k"] = 0
+            stats["count_over_100k"] = 0
+            stats["count_over_50k"] = 0
+
+        metrics = ["view", "favorite", "coin", "like", "danmaku", "reply", "share"]
+        for metric in metrics:
+            if metric in df_top100.columns:
+                stats[f"total_{metric}"] = int(
+                    pd.to_numeric(df_top100[metric], errors="coerce").sum()
+                )
+            else:
+                stats[f"total_{metric}"] = 0
+
+        if len(df_total) >= 20 and "point" in df_total.columns:
+            stats["cutoff_main"] = df_total.iloc[19]["point"]
+        else:
+            stats["cutoff_main"] = 0
+
+        if len(df_total) >= 100 and "point" in df_total.columns:
+            stats["cutoff_sub"] = df_total.iloc[99]["point"]
+        else:
+            stats["cutoff_sub"] = (
+                df_total.iloc[-1]["point"] if not df_total.empty else 0
+            )
+
+        return stats
+
+    # ---------- 趋势（用往期翻唱周刊数据） ----------
+
+    def _calculate_weekly_trends(
+        self, target_names: List[str], weeks: int = 5
+    ) -> Dict[str, Dict[str, Any]]:
+        trends = {
+            name: {str(k): "-" for k in range(1, weeks + 1)} for name in target_names
+        }
+
+        for week_idx in range(1, weeks + 1):
+            offset = weeks - week_idx
+            date = self.target_date - datetime.timedelta(weeks=offset)
+            path = self._get_ranking_path(date.strftime("%Y-%m-%d"))
+            df = self.read_excel_safe(path)
+
+            if df is not None and "name" in df.columns and "rank" in df.columns:
+                rank_map = df.groupby("name")["rank"].min().to_dict()
+                for name in target_names:
+                    if name in rank_map:
+                        trends[name][str(week_idx)] = int(rank_map[name])
+
+        return trends
+
+    # ---------- 角色统计 ----------
+
+    def _get_last_week_role_ranks(
+        self, role_col: str, exclude_list: List[str]
+    ) -> Dict[str, int]:
+        df = self._get_last_week_data()
+        if df is None:
+            return {}
+
+        stats_map: Dict[str, int] = {}
+        if role_col in df.columns and "point" in df.columns:
+            for _, row in df.iterrows():
+                points = row["point"] if pd.notna(row["point"]) else 0
+                for name in str(row[role_col]).split("、"):
+                    name = name.strip()
+                    if name and name not in exclude_list:
+                        stats_map[name] = stats_map.get(name, 0) + points
+
+        sorted_list = sorted(stats_map.items(), key=lambda x: x[1], reverse=True)
+        return {name: idx + 1 for idx, (name, _) in enumerate(sorted_list)}
+
+    # ---------- 主流程 ----------
+
+    def process(self) -> Dict[str, Any]:
+        issue_index = self._get_issue_index()
+        start_date = self.target_date - datetime.timedelta(days=7)
+
+        fmt_start = f"{start_date.year}年{start_date.month}月{start_date.day}日 00:00"
+        fmt_end = f"{self.target_date.year}年{self.target_date.month}月{self.target_date.day}日 00:00"
+
+        output = {
+            "date": self.date_compact,
+            "index": issue_index,
+            "period": f"{fmt_start} ~ {fmt_end}",
+            "op": self._get_last_week_op(),
+            "stat": {},
+        }
+
+        path_total = self._get_ranking_path(self.date_hyphen)
+        df_total = self.read_excel_safe(path_total)
+
+        if df_total is None:
+            logger.error("翻唱周刊榜单文件缺失")
+            return output
+
+        logger.info(f"处理第 {issue_index} 期翻唱周刊")
+
+        # ---- 统计 & 环比 ----
+        current_stats = self.calculate_stats(df_total)
+
+        df_last = self._get_last_week_data()
+        if df_last is not None:
+            original_date = self.target_date
+            self.target_date = self.target_date - datetime.timedelta(days=7)
+            last_stats = self.calculate_stats(df_last)
+            self.target_date = original_date
+
+            output["stat"] = {
+                key: {"value": value, "diff": value - last_stats.get(key, value)}
+                for key, value in current_stats.items()
+            }
+        else:
+            output["stat"] = {
+                key: {"value": value, "diff": "-"}
+                for key, value in current_stats.items()
+            }
+
+        # ---- 榜单数据 ----
+        top_20_total = df_total.head(20).to_dict(orient="records")
+        sub_rank_total = df_total.iloc[20:100].to_dict(orient="records")
+
+        # 成就
+        honor_map = self.get_honor_map()
+        all_songs = top_20_total + sub_rank_total
+        for song in all_songs:
+            song["honor"] = honor_map.get(str(song.get("name", "")).strip(), [])
+
+        # 周趋势（近5期翻唱周刊）
+        target_names = list(
+            dict.fromkeys([x["name"] for x in all_songs if x.get("name")])
+        )
+        trends = self._calculate_weekly_trends(target_names)
+        for song in all_songs:
+            song["weekly_trends"] = trends.get(
+                song.get("name"), {str(k): "-" for k in range(1, 6)}
+            )
+
+        output["total_rank_top20"] = top_20_total
+        output["total_rank_sub"] = sub_rank_total
+
+        # ---- 角色统计 ----
+        exclude_list = self.load_exclude_list()
+        output["vocal_stats"] = self.calculate_role_stats(
+            df_total, "vocal", "point", exclude_list, 10
+        )
+        output["producer_stats"] = self.calculate_role_stats(
+            df_total, "author", "point", [], 10
+        )
+
+        last_vocal_ranks = self._get_last_week_role_ranks("vocal", exclude_list)
+        last_producer_ranks = self._get_last_week_role_ranks("author", [])
+
+        for item in output["vocal_stats"]:
+            item["last_rank"] = last_vocal_ranks.get(item["name"], "-")
+        for item in output["producer_stats"]:
+            item["last_rank"] = last_producer_ranks.get(item["name"], "-")
+
+        # ---- 图片填充 ----
+        bvid_map, name_map = self.build_image_map(df_total)
+        self.fill_images(all_songs, bvid_map, name_map)
+
+        return output
+
+    def run(self):
+        data = self.process()
+        self.save_json(data, f"cover_{self.date_hyphen}.json")
+
+
 # ==================== 特殊榜单导出器 ====================
 
 
@@ -848,6 +1087,11 @@ def export_weekly(target_date: datetime.date = None):
 
 def export_monthly(target_month: str = None):
     exporter = MonthlyExporter(target_month=target_month)
+    exporter.run()
+
+
+def export_cover_weekly(target_date: datetime.date = None):
+    exporter = CoverWeeklyExporter(target_date=target_date)
     exporter.run()
 
 
