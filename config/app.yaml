@@ -150,7 +150,7 @@ annual:
 cover_weekly:
   ranking_type: "weekly"
   has_new_ranking: false
-  start_date: "2026-04-02" # 首期基准日（周三）
+  start_date: "2026-04-01" # 首期基准日（周三）
   start_index: 1
   update_options:
     count: true
