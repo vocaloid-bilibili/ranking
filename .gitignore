@@ -34,7 +34,7 @@ __pycache__/
 *.mp3
 *.wav
 *.html
-
+*.part
 *.zip
 
 *测试*

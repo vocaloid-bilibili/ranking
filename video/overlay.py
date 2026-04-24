@@ -77,7 +77,16 @@ def build_overlay_cmd(
     stats_order = ["播放", "收藏", "硬币", "点赞", "弹幕", "评论", "分享"]
     icon_indices = {}
     for idx, label in enumerate(stats_order):
-        cmd += ["-loop", "1", "-i", str(icon_paths[label])]
+        cmd += [
+            "-f",
+            "image2",
+            "-loop",
+            "1",
+            "-framerate",
+            "60",
+            "-i",
+            str(icon_paths[label]),
+        ]
         icon_indices[label] = idx + 1
 
     # 构建滤镜

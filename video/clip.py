@@ -2,6 +2,7 @@
 """视频片段生成"""
 
 from pathlib import Path
+import time
 from typing import List, Optional
 import subprocess
 
@@ -47,6 +48,10 @@ class ClipGenerator:
         if not segment:
             return None
 
+        if not segment.exists() or segment.stat().st_size < 1024:
+            logger.error(f"[{bvid}] segment 文件无效: {segment}")
+            return None
+
         overlay_args, output_path = build_overlay_cmd(
             segment_path=segment,
             row=row,
@@ -69,6 +74,13 @@ class ClipGenerator:
     def _ensure_segment(self, bvid: str, duration: float) -> Optional[Path]:
         """确保视频片段存在"""
         video = self.api_client.download_video(bvid)
+        for attempt in range(3):
+            video = self.api_client.download_video(bvid)
+            if video:
+                break
+            wait = 5 * (attempt + 1)
+            logger.warning(f"[{bvid}] 下载失败，{wait}s 后重试 ({attempt+1}/3)")
+            time.sleep(wait)
         if not video:
             return None
 

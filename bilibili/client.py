@@ -367,6 +367,7 @@ class BilibiliClient:
                     "format": "bv*+ba/best",
                     "outtmpl": str(bvid_dir / f"{bvid}.%(ext)s"),
                     "quiet": True,
+                    "cookiefile": "config\\cookies.txt",
                 }
             ) as ydl:
                 ydl.extract_info(
