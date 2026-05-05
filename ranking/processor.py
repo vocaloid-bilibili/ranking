@@ -19,6 +19,7 @@ from common.dates import (
     get_monthly_dates,
     get_weekly_dates,
 )
+from common.io import load_excel
 from common.merge import DataFrameMerger
 from ranking.rank_ops import (
     _build_bvid_name_bridge,
@@ -78,6 +79,20 @@ class RankingProcessor:
         if hasattr(result, "__dataclass_fields__"):
             return {k: getattr(result, k) for k in result.__dataclass_fields__}
         return result
+
+    def _unify_metadata(
+        self, df: pd.DataFrame, collected: pd.DataFrame
+    ) -> pd.DataFrame:
+        meta_cols = self.column_config.get_columns("meta")
+        df = df.copy()
+        source = collected[
+            ["bvid"] + [c for c in meta_cols if c in collected.columns]
+        ].drop_duplicates("bvid")
+
+        cols_to_drop = [c for c in meta_cols if c in df.columns]
+        df = df.drop(columns=cols_to_drop)
+        df = pd.merge(df, source, on="bvid", how="left")
+        return df
 
     def _apply_data_filter(
         self,
@@ -145,7 +160,7 @@ class RankingProcessor:
 
         collected_data = None
         if self.paths.collected.exists():
-            collected_data = pd.read_excel(self.paths.collected)
+            collected_data = load_excel(self.paths.collected)
 
         data_filter = self._get_period_config("filter")
         if data_filter:
@@ -224,46 +239,61 @@ class RankingProcessor:
     def run_combination(self):
         dates = self.get_dates()
 
-        raw_combined_df = self._load_and_combine_diffs(dates)
-        existing_collected_df = pd.read_excel(self.paths.collected)
-
-        raw_combined_df = DataFrameMerger.resolve_name_conflicts(
-            raw_combined_df, existing_collected_df
-        )
-
-        updated_collected_df = self._update_collected_songs(
-            raw_combined_df, existing_collected_df
-        )
-        self._process_and_save_combined_ranking(raw_combined_df, dates)
-        self._update_master_data_for_next_day(dates, updated_collected_df)
-
-    def _load_and_combine_diffs(self, dates: dict) -> pd.DataFrame:
         main_path = self._get_path("main_diff", "input_paths", **dates)
         new_song_path = self._get_path("new_song_diff", "input_paths", **dates)
 
-        df_main = pd.read_excel(main_path)
-        df_new_song = pd.read_excel(new_song_path)
+        df_main = load_excel(main_path)
+        df_new_song = load_excel(new_song_path)
+        existing_collected_df = load_excel(self.paths.collected)
 
-        return DataFrameMerger.combine_outer(df_new_song, df_main, on="bvid")
+        # Step 1: new diff 先做同名冲突检测（在写入collected之前）
+        df_new_song = DataFrameMerger.resolve_name_conflicts(
+            df_new_song, existing_collected_df
+        )
+
+        # Step 2: new diff 覆盖/追加到 collected
+        updated_collected = self._update_collected_songs(
+            df_new_song, df_main, existing_collected_df
+        )
+
+        # Step 3: 合并 diff 用于得分
+        raw_combined_df = DataFrameMerger.combine_outer(df_new_song, df_main, on="bvid")
+
+        # Step 4: 用 updated collected 统一所有元数据
+        raw_combined_df = self._unify_metadata(raw_combined_df, updated_collected)
+
+        # Step 5: 生成排名
+        self._process_and_save_combined_ranking(raw_combined_df, dates)
+
+        # Step 6: 更新快照
+        self._update_master_data_for_next_day(dates, updated_collected)
 
     def _update_collected_songs(
-        self, df: pd.DataFrame, existing_df: pd.DataFrame
+        self,
+        df_new_song: pd.DataFrame,
+        df_main: pd.DataFrame,
+        existing_df: pd.DataFrame,
     ) -> pd.DataFrame:
         metadata_cols = self.column_config.get_columns("metadata_update_cols")
+        existing_df = existing_df.copy()
 
-        latest = df[["bvid"] + [c for c in metadata_cols if c in df.columns]].copy()
-        latest = latest.drop_duplicates(subset=["bvid"], keep="last")
+        if not df_new_song.empty:
+            new_updates = df_new_song[
+                ["bvid"] + [c for c in metadata_cols if c in df_new_song.columns]
+            ].drop_duplicates(subset=["bvid"], keep="last")
 
-        existing_df = existing_df.set_index("bvid")
-        latest = latest.set_index("bvid")
-        existing_df.update(latest)
-        existing_df = existing_df.reset_index()
+            existing_df = existing_df.set_index("bvid")
+            existing_df.update(new_updates.set_index("bvid"))
+            existing_df = existing_df.reset_index()
 
-        new_bvids = df[~df["bvid"].isin(existing_df["bvid"])]["bvid"].unique()
+        combined = DataFrameMerger.combine_outer(df_new_song, df_main, on="bvid")
+        new_bvids = combined[~combined["bvid"].isin(existing_df["bvid"])][
+            "bvid"
+        ].unique()
 
         if len(new_bvids) > 0:
             record_cols = self.column_config.get_columns("record")
-            new_songs = df[df["bvid"].isin(new_bvids)].copy()
+            new_songs = combined[combined["bvid"].isin(new_bvids)].copy()
             new_songs = new_songs.drop_duplicates(subset=["bvid"], keep="last")
             new_songs["streak"] = 0
             new_songs = new_songs[[c for c in record_cols if c in new_songs.columns]]
@@ -288,8 +318,8 @@ class RankingProcessor:
         main_path = self._get_path("main_data", "input_paths", **dates)
         new_song_path = self._get_path("new_song_data", "input_paths", **dates)
 
-        df_main = pd.read_excel(main_path)
-        df_new_song = pd.read_excel(new_song_path)
+        df_main = load_excel(main_path)
+        df_new_song = load_excel(new_song_path)
 
         promotable = pd.merge(
             df_new_song, df_collected[["bvid"]], on="bvid", how="inner"
@@ -324,9 +354,9 @@ class RankingProcessor:
         diff_path = self._get_path("diff_file", "input_paths", **dates)
         prev_rank_path = self._get_path("previous_ranking", "input_paths", **dates)
 
-        new_ranking = pd.read_excel(diff_path)
+        new_ranking = load_excel(diff_path)
         prev_cols = ["name", "rank"]
-        prev_full = pd.read_excel(prev_rank_path)
+        prev_full = load_excel(prev_rank_path)
         if "bvid" in prev_full.columns:
             prev_cols.append("bvid")
         prev_ranking = prev_full[prev_cols]
@@ -381,11 +411,11 @@ class RankingProcessor:
 
         collected_data = None
         if collected_path is not None:
-            collected_data = await asyncio.to_thread(pd.read_excel, collected_path)
+            collected_data = await asyncio.to_thread(load_excel, collected_path)
 
         old_data, new_data = await asyncio.gather(
-            asyncio.to_thread(pd.read_excel, paths_info["old"]),
-            asyncio.to_thread(pd.read_excel, paths_info["new"]),
+            asyncio.to_thread(load_excel, paths_info["old"]),
+            asyncio.to_thread(load_excel, paths_info["new"]),
         )
         df = process_records(
             new_data=new_data,
@@ -444,12 +474,12 @@ class RankingProcessor:
         input_path = self._get_path("input_path", "paths", song_data=song_data)
         output_path = self._get_path("output_path", "paths", song_data=song_data)
 
-        df = pd.read_excel(input_path)
+        df = load_excel(input_path)
         processing_opts = self._get_period_config("processing_options", {})
 
         collected_data = None
         if "collected_data" in processing_opts:
-            collected_data = pd.read_excel(processing_opts["collected_data"])
+            collected_data = load_excel(processing_opts["collected_data"])
 
         df = process_records(
             new_data=df,
@@ -464,7 +494,7 @@ class RankingProcessor:
 
     def run_history(self, dates: dict):
         input_path = self._get_path("weekly_ranking", "input_paths", **dates)
-        df = pd.read_excel(input_path)
+        df = load_excel(input_path)
 
         history_cols = self.column_config.get_columns("history")
         df = df[df["rank"] <= 5][history_cols].copy()

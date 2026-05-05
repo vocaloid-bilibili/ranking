@@ -1,5 +1,6 @@
 {
   "columns": {
+    "meta": ["name", "author", "copyright", "vocal", "synthesizer", "type"],
     "final_ranking": [
       "title",
       "bvid",

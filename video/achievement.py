@@ -8,6 +8,7 @@ import pandas as pd
 import yaml
 from PIL import Image
 
+from common.io import load_excel
 from common.logger import logger
 from video.card import CardRenderer
 
@@ -32,7 +33,7 @@ class Achievement:
             logger.warning(f"十万记录文件不存在: {path}")
             return []
 
-        df = pd.read_excel(path)
+        df = load_excel(path)
         if df.empty:
             return []
 

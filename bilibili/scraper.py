@@ -12,7 +12,7 @@ import pandas as pd
 from bilibili.client import BilibiliClient
 from common.config import Paths, get_paths
 from common.formatters import clean_text
-from common.io import save_excel
+from common.io import load_excel, save_excel
 from common.logger import logger
 from common.merge import RecordMerger
 from common.models import ScraperConfig, SearchOptions, SearchRestrictions, VideoInfo
@@ -121,7 +121,7 @@ class BilibiliScraper:
             self.filename = (
                 self.config.OUTPUT_DIR / f"{self.today.strftime('%Y%m%d')}.xlsx"
             )
-            self.songs = pd.read_excel(input_file)
+            self.songs = load_excel(input_file)
             if "streak" not in self.songs.columns:
                 self.songs["streak"] = 0
             if "aid" in self.songs.columns:
@@ -143,7 +143,7 @@ class BilibiliScraper:
 
     def _load_existing_bvids(self, path: Union[str, Path]) -> Set[str]:
         try:
-            df = pd.read_excel(path, usecols=["bvid"])
+            df = load_excel(path, usecols=["bvid"])
             return set(df["bvid"].dropna().astype(str))
         except (FileNotFoundError, ValueError, KeyError):
             return set()

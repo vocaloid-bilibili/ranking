@@ -15,7 +15,7 @@ from PIL import Image
 from tqdm import tqdm
 
 from common.config import get_app_config, get_paths
-from common.io import save_excel
+from common.io import load_excel, save_excel
 from common.logger import logger
 
 
@@ -276,7 +276,7 @@ def run_duplicate_detection(
 
     # 读取数据
     try:
-        df = pd.read_excel(input_file, dtype={"aid": str})
+        df = load_excel(input_file, dtype={"aid": str})
     except Exception as e:
         logger.error(f"读取文件失败: {e}")
         return

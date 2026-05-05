@@ -45,11 +45,12 @@ class BaseExporter(ABC):
         self.json_output_dir.mkdir(parents=True, exist_ok=True)
 
     def read_excel_safe(self, path: Path, sheet_name=0) -> Optional[pd.DataFrame]:
-        """安全读取 Excel"""
         if not path.exists():
             logger.warning(f"文件不存在: {path}")
             return None
         try:
+            return pd.read_excel(path, sheet_name=sheet_name, engine="calamine")
+        except ImportError:
             return pd.read_excel(path, sheet_name=sheet_name)
         except Exception as e:
             logger.error(f"读取Excel失败 [{path}]: {e}")
@@ -67,17 +68,16 @@ class BaseExporter(ABC):
             logger.error(f"读取排除配置失败: {e}")
             return []
 
-    def get_honor_map(self) -> Dict[str, List[str]]:
-        """获取成就映射"""
-        honor_map: Dict[str, List[str]] = {}
-
-        # 成就主文件在 achievement 目录下
+    def get_honor_map(self):
+        honor_map = {}
         master_file = self.paths.achievement / "成就.xlsx"
         if not master_file.exists():
             return honor_map
-
         try:
-            xls = pd.ExcelFile(master_file)
+            try:
+                xls = pd.ExcelFile(master_file, engine="calamine")
+            except ImportError:
+                xls = pd.ExcelFile(master_file)
             for sheet_name in xls.sheet_names:
                 df = pd.read_excel(xls, sheet_name=sheet_name)
                 if "name" in df.columns:

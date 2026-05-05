@@ -198,7 +198,7 @@ class AITagger:
 
     def _prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[int, str]]:
         """准备数据，区分已标注和待处理"""
-        df = pd.read_excel(self.input_file)
+        df = load_excel(self.input_file)
 
         for col in self.TAGGING_COLS:
             if col not in df.columns:

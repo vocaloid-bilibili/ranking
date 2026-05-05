@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Set, Tuple
 import pandas as pd
 
 from common.config import get_app_config, get_paths
-from common.io import save_excel
+from common.io import load_excel, save_excel
 from common.logger import logger
 
 
@@ -181,15 +181,12 @@ class AchievementManager:
         self.master_file = self.output_dir / "成就.xlsx"
         self.master_db = self._load_master_db()
 
-    def _load_master_db(self) -> Dict[AchiType, Dict[str, Tuple[int, str]]]:
-        """加载主数据库"""
-        db: Dict[AchiType, Dict[str, Tuple[int, str]]] = defaultdict(dict)
-
+    def _load_master_db(self):
+        db = defaultdict(dict)
         if not self.master_file.exists():
             return db
-
         try:
-            with pd.ExcelFile(self.master_file, engine="openpyxl") as xls:
+            with pd.ExcelFile(self.master_file, engine="calamine") as xls:
                 for achi_type in AchiType:
                     sheet = achi_type.value
                     if sheet in xls.sheet_names:
@@ -199,9 +196,9 @@ class AchievementManager:
                                 int(row["index"]),
                                 str(row.get("progress", "")),
                             )
+
         except Exception as e:
             logger.warning(f"加载成就数据库失败: {e}")
-
         return db
 
     def _save_master_db(self):
@@ -336,7 +333,7 @@ class AchievementManager:
 
 def load_ranking_file(file_path: Path) -> PeriodData:
     """加载榜单文件"""
-    df = pd.read_excel(file_path, engine="openpyxl")
+    df = load_excel(file_path, engine="openpyxl")
     top20 = df.head(20).copy()
 
     names = []

@@ -9,7 +9,7 @@ from typing import List, Optional
 import pandas as pd
 
 from common.config import get_paths
-from common.io import save_excel
+from common.io import load_excel, save_excel
 from common.logger import logger
 
 
@@ -53,8 +53,8 @@ class MilestoneDetector:
         file2 = self.data_dir / f"{date2}.xlsx"
 
         try:
-            df1 = pd.read_excel(file1)
-            df2 = pd.read_excel(file2)
+            df1 = load_excel(file1)
+            df2 = load_excel(file2)
         except FileNotFoundError as e:
             logger.error(f"找不到文件: {e.filename}")
             return None

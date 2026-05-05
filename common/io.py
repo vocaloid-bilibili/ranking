@@ -162,7 +162,7 @@ def load_excel(
         return pd.DataFrame()
 
     try:
-        return pd.read_excel(path, usecols=usecols, dtype=dtype)
+        return pd.read_excel(path, usecols=usecols, dtype=dtype, engine="calamine")
     except Exception as e:
         logger.error(f"读取失败: {path}, 错误: {e}")
         return pd.DataFrame()
