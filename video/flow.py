@@ -10,16 +10,16 @@ from typing import Dict, List, Optional
 import pandas as pd
 from PIL import Image
 
+from bilibili.client import BilibiliClient
 from common.logger import logger
 from common.models import ScraperConfig
-from bilibili.client import BilibiliClient
-from video.config import VideoConfig, load_video_config
-from video.climax import find_climax_segment
-from video.issue import Issue
-from video.cover import CoverGenerator
-from video.card import CardRenderer
 from video.achievement import Achievement
+from video.card import CardRenderer
+from video.climax import find_climax_segment
 from video.clip import ClipGenerator
+from video.config import VideoConfig, load_video_config
+from video.cover import CoverGenerator
+from video.issue import Issue
 
 
 class DailyVideoFlow:
@@ -342,7 +342,7 @@ class DailyVideoFlow:
             logger.error(f"成就视频出错: {exc}")
             try:
                 process.stdin.close()
-            except:
+            except OSError:
                 pass
             return None
 

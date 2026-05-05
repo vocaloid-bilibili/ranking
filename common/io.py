@@ -1,16 +1,15 @@
 # common/io.py
 """文件读写工具"""
 
-import pandas as pd
 from pathlib import Path
-from typing import Optional, List, Dict, Union
+from typing import Dict, List, Optional, Union
 
+import pandas as pd
+from openpyxl.styles import Alignment, PatternFill
 from openpyxl.utils import get_column_letter
-from openpyxl.styles import PatternFill, Alignment
 
+from common.formatters import COLUMN_FORMATTERS, clean_excel_chars, format_aid
 from common.logger import logger
-from common.formatters import clean_excel_chars, format_aid, COLUMN_FORMATTERS
-
 
 # ==================== DataFrame 预处理 ====================
 

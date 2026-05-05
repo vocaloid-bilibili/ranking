@@ -1,15 +1,16 @@
 # services/milestone.py
 """播放量里程碑检测服务"""
 
-import pandas as pd
-from pathlib import Path
-from datetime import datetime, timedelta
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from pathlib import Path
 from typing import List, Optional
 
-from common.logger import logger
-from common.io import save_excel
+import pandas as pd
+
 from common.config import get_paths
+from common.io import save_excel
+from common.logger import logger
 
 
 @dataclass

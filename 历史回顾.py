@@ -1,7 +1,8 @@
 # 历史回顾.py
 import asyncio
-from ranking.processor import RankingProcessor
+
 from common.dates import get_history_dates
+from ranking.processor import RankingProcessor
 
 
 async def main():

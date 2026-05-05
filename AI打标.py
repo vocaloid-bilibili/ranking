@@ -1,8 +1,9 @@
 # AI打标.py
 import asyncio
-from services.ai_tagger import AITagger
+
 from common.config import get_paths
 from common.dates import get_daily_dates
+from services.ai_tagger import AITagger
 
 
 async def main():

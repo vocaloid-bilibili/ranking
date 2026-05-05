@@ -3,12 +3,13 @@
 
 import asyncio
 from pathlib import Path
+
 import yaml
 
-from ranking.processor import RankingProcessor
-from services.sftp import SFTPClient
 from common.config import get_paths
 from common.logger import logger
+from ranking.processor import RankingProcessor
+from services.sftp import SFTPClient
 
 
 async def main():

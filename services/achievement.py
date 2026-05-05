@@ -1,18 +1,18 @@
 # services/achievement.py
 """周刊成就检测服务"""
 
+from collections import defaultdict, deque
 from dataclasses import dataclass
-from typing import List, Dict, Tuple, Set, Optional
-from collections import deque, defaultdict
 from datetime import datetime
-from pathlib import Path
 from enum import Enum
+from pathlib import Path
+from typing import Dict, List, Optional, Set, Tuple
 
 import pandas as pd
 
-from common.logger import logger
-from common.io import save_excel
 from common.config import get_app_config, get_paths
+from common.io import save_excel
+from common.logger import logger
 
 
 class AchiType(Enum):
@@ -262,7 +262,7 @@ class AchievementManager:
         if pd.notna(pubdate):
             try:
                 pubdate = pd.to_datetime(pubdate).strftime("%Y-%m-%d %H:%M:%S")
-            except:
+            except (ValueError, TypeError):
                 pubdate = str(pubdate)
         else:
             pubdate = ""

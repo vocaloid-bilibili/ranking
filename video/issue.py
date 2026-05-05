@@ -1,10 +1,11 @@
 # video/issue.py
 """期刊数据管理"""
 
-from pathlib import Path
 import re
 from datetime import datetime, timedelta
-from typing import Tuple, List, Optional
+from pathlib import Path
+from typing import List, Optional, Tuple
+
 import pandas as pd
 
 from common.logger import logger

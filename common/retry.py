@@ -1,7 +1,8 @@
 # common/retry.py
 import asyncio
 import time
-from typing import TypeVar, Callable, Awaitable
+from typing import Awaitable, Callable, TypeVar
+
 from common.logger import logger
 
 T = TypeVar("T")

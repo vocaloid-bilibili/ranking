@@ -3,19 +3,19 @@
 
 import hashlib
 import io
-from pathlib import Path
-from itertools import combinations
 from dataclasses import dataclass, field
+from itertools import combinations
+from pathlib import Path
 from typing import Dict, List, Optional, Set
 
+import imagehash
 import pandas as pd
 import requests
-import imagehash
 from PIL import Image
 from tqdm import tqdm
 
-from common.io import save_excel
 from common.config import get_app_config, get_paths
+from common.io import save_excel
 from common.logger import logger
 
 

@@ -1,10 +1,11 @@
 # video/config.py
 """视频模块独立配置管理"""
 
-import yaml
-from pathlib import Path
 from dataclasses import dataclass
-from typing import Dict, Tuple, Any
+from pathlib import Path
+from typing import Any, Dict, Tuple
+
+import yaml
 
 # 视频模块根目录
 VIDEO_MODULE_ROOT = Path(__file__).resolve().parent

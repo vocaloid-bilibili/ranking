@@ -2,7 +2,8 @@
 """成就视频片段生成"""
 
 from pathlib import Path
-from typing import List, Tuple, Dict
+from typing import Dict, List, Tuple
+
 import pandas as pd
 import yaml
 from PIL import Image

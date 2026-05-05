@@ -1,9 +1,10 @@
 # ranking/calculator.py
 """纯评分计算模块"""
 
-from math import ceil
 from dataclasses import dataclass
-from common.models import VideoStats, ScoreResult, RankingType
+from math import ceil
+
+from common.models import RankingType, ScoreResult, VideoStats
 
 
 @dataclass

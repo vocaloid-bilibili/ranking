@@ -1,9 +1,9 @@
 # video/card.py
 """成就卡片和头部渲染"""
 
+from io import BytesIO
 from pathlib import Path
 from typing import Dict, Optional
-from io import BytesIO
 
 import pandas as pd
 import requests
@@ -41,7 +41,7 @@ class CardRenderer:
         if cover_cache.exists():
             try:
                 return Image.open(cover_cache).convert("RGBA")
-            except:
+            except (OSError, IOError):
                 pass
 
         if url and url.startswith("http"):
@@ -52,7 +52,7 @@ class CardRenderer:
                     cover_cache.parent.mkdir(parents=True, exist_ok=True)
                     img.convert("RGB").save(cover_cache)
                     return img
-            except:
+            except (requests.RequestException, OSError, IOError):
                 pass
 
         return Image.new("RGBA", (300, 200), (200, 200, 200, 255))
@@ -101,7 +101,7 @@ class CardRenderer:
             f_info = ImageFont.truetype(self.font_file, 22)
             f_author = ImageFont.truetype(self.font_bold_file, 28)
             f_achieve = ImageFont.truetype(self.font_bold_file, 54)
-        except:
+        except (OSError, IOError):
             f_title = f_info = f_author = f_achieve = ImageFont.load_default()
 
         # 标题
@@ -161,7 +161,7 @@ class CardRenderer:
 
         try:
             title_font = ImageFont.truetype(self.font_bold_file, 80)
-        except:
+        except (OSError, IOError):
             title_font = ImageFont.load_default()
 
         # 标题
@@ -182,7 +182,7 @@ class CardRenderer:
 
             try:
                 ed_font = ImageFont.truetype(self.font_file, 32)
-            except:
+            except (OSError, IOError):
                 ed_font = ImageFont.load_default()
 
             region_top = ty + th + 25

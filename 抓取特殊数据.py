@@ -1,11 +1,12 @@
 # 抓取特殊数据.py
 import asyncio
+
 import yaml
 
-from common.config import get_paths
-from common.models import ScraperConfig, SearchOptions
 from bilibili.client import BilibiliClient
 from bilibili.scraper import BilibiliScraper
+from common.config import get_paths
+from common.models import ScraperConfig, SearchOptions
 
 
 async def main():

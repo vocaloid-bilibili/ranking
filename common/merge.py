@@ -1,7 +1,8 @@
 # common/merge.py
 """数据合并策略"""
 
-from typing import Dict, List, Set, Callable
+from typing import Callable, Dict, List, Set
+
 import pandas as pd
 
 from common.formatters import format_duration

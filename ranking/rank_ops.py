@@ -1,9 +1,9 @@
 # ranking/rank_ops.py
 """DataFrame级别的排名操作"""
 
-import pandas as pd
 from pathlib import Path
 
+import pandas as pd
 
 STAT_COLS = ["view", "favorite", "coin", "like", "danmaku", "reply", "share"]
 RATE_COLS = ["viewR", "favoriteR", "coinR", "likeR", "danmakuR", "replyR", "shareR"]

@@ -1,5 +1,6 @@
 # 年刊.py
 import asyncio
+
 from ranking.processor import RankingProcessor
 
 

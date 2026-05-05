@@ -3,7 +3,6 @@
 
 from video.flow import DailyVideoFlow
 
-
 if __name__ == "__main__":
     flow = DailyVideoFlow()
     flow.run()

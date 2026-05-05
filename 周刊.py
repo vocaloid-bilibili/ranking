@@ -1,7 +1,8 @@
 # 周刊.py
 import asyncio
-from ranking.processor import RankingProcessor
+
 from common.dates import get_weekly_dates
+from ranking.processor import RankingProcessor
 
 
 async def main():

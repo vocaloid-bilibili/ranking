@@ -6,8 +6,8 @@ import threading
 from pathlib import Path
 from typing import Dict, Optional
 
-import yaml
 import cairosvg
+import yaml
 
 
 class IconRenderer:

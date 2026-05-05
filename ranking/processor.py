@@ -3,29 +3,29 @@
 
 import asyncio
 import inspect
-import pandas as pd
 from datetime import datetime, timedelta
-from typing import Dict
 from pathlib import Path
+from typing import Dict
 
-from common.config import get_app_config, get_paths, ColumnConfig
+import pandas as pd
+
+from common.config import ColumnConfig, get_app_config, get_paths
 from common.data import DataLoader
 from common.dates import (
-    get_weekly_dates,
-    get_monthly_dates,
+    get_cover_weekly_dates,
     get_daily_dates,
     get_daily_new_song_dates,
     get_history_dates,
-    get_cover_weekly_dates,
+    get_monthly_dates,
+    get_weekly_dates,
 )
-from common.logger import logger
 from common.merge import DataFrameMerger
 from ranking.rank_ops import (
-    calculate_ranks,
-    update_rank_change,
-    update_board_count,
-    keep_highest_score,
     _build_bvid_name_bridge,
+    calculate_ranks,
+    keep_highest_score,
+    update_board_count,
+    update_rank_change,
 )
 from ranking.record import process_records
 

@@ -1,5 +1,4 @@
 # 导出特殊JSON.py
-from pathlib import Path
 from services.json_export import export_special
 
 if __name__ == "__main__":
