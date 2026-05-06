@@ -335,14 +335,15 @@ class RankingProcessor:
         update_cols = self.column_config.get_columns("metadata_update_cols")
         update_source = df_collected[
             ["bvid"] + [c for c in update_cols if c in df_collected.columns]
-        ].copy()
+        ].drop_duplicates(subset=["bvid"], keep="last")
 
-        cols_to_drop = [c for c in update_cols if c in updated_main.columns]
-        base_df = updated_main.drop(columns=cols_to_drop)
-        final_df = pd.merge(base_df, update_source, on="bvid", how="left")
+        updated_main = updated_main.set_index("bvid")
+        update_source = update_source.set_index("bvid")
+        updated_main.update(update_source)
+        updated_main = updated_main.reset_index()
 
         output_path = self._get_path("main_data", "output_paths", **dates)
-        self.data_loader.save(final_df, output_path, "stat")
+        self.data_loader.save(updated_main, output_path, "stat")
 
     # ==================== 日刊新曲 ====================
 
