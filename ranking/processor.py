@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Dict
 
 import pandas as pd
-
 from common.config import ColumnConfig, get_app_config, get_paths
 from common.data import DataLoader
 from common.dates import (
@@ -286,14 +285,13 @@ class RankingProcessor:
             existing_df.update(new_updates.set_index("bvid"))
             existing_df = existing_df.reset_index()
 
-        combined = DataFrameMerger.combine_outer(df_new_song, df_main, on="bvid")
-        new_bvids = combined[~combined["bvid"].isin(existing_df["bvid"])][
+        new_bvids = df_new_song[~df_new_song["bvid"].isin(existing_df["bvid"])][
             "bvid"
         ].unique()
 
         if len(new_bvids) > 0:
             record_cols = self.column_config.get_columns("record")
-            new_songs = combined[combined["bvid"].isin(new_bvids)].copy()
+            new_songs = df_new_song[df_new_song["bvid"].isin(new_bvids)].copy()
             new_songs = new_songs.drop_duplicates(subset=["bvid"], keep="last")
             new_songs["streak"] = 0
             new_songs = new_songs[[c for c in record_cols if c in new_songs.columns]]
