@@ -333,7 +333,7 @@ class AchievementManager:
 
 def load_ranking_file(file_path: Path) -> PeriodData:
     """加载榜单文件"""
-    df = load_excel(file_path, engine="openpyxl")
+    df = load_excel(file_path)
     top20 = df.head(20).copy()
 
     names = []
