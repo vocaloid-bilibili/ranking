@@ -1,10 +1,10 @@
 # 抓取新曲数据.py
 import asyncio
 
-from common.config import get_paths
-from common.models import ScraperConfig, SearchOptions
 from bilibili.client import BilibiliClient
 from bilibili.scraper import BilibiliScraper
+from common.config import get_paths
+from common.models import ScraperConfig, SearchOptions
 
 
 async def main():

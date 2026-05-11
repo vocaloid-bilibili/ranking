@@ -2,20 +2,21 @@
 """B站视频数据采集工作流"""
 
 import asyncio
-import pandas as pd
-from pathlib import Path
-from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Any, Set, Union, Literal
 from dataclasses import asdict
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional, Set, Union
 
-from common.config import get_paths, Paths
-from common.logger import logger
-from common.io import save_excel
-from common.formatters import clean_text
-from common.models import VideoInfo, SearchOptions, SearchRestrictions, ScraperConfig
-from common.merge import RecordMerger
-from ranking.streak import StreakManager
+import pandas as pd
+
 from bilibili.client import BilibiliClient
+from common.config import Paths, get_paths
+from common.formatters import clean_text
+from common.io import load_excel, save_excel
+from common.logger import logger
+from common.merge import RecordMerger
+from common.models import ScraperConfig, SearchOptions, SearchRestrictions, VideoInfo
+from ranking.streak import StreakManager
 
 
 def transform_api_response(api_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -120,7 +121,7 @@ class BilibiliScraper:
             self.filename = (
                 self.config.OUTPUT_DIR / f"{self.today.strftime('%Y%m%d')}.xlsx"
             )
-            self.songs = pd.read_excel(input_file)
+            self.songs = load_excel(input_file)
             if "streak" not in self.songs.columns:
                 self.songs["streak"] = 0
             if "aid" in self.songs.columns:
@@ -142,9 +143,9 @@ class BilibiliScraper:
 
     def _load_existing_bvids(self, path: Union[str, Path]) -> Set[str]:
         try:
-            df = pd.read_excel(path, usecols=["bvid"])
+            df = load_excel(path, usecols=["bvid"])
             return set(df["bvid"].dropna().astype(str))
-        except:
+        except (FileNotFoundError, ValueError, KeyError):
             return set()
 
     def is_census_day(self) -> bool:
@@ -247,8 +248,9 @@ class BilibiliScraper:
         filters = []
         if self.mode == "new":
             filters.append(
-                lambda v: datetime.strptime(v.pubdate, "%Y-%m-%d %H:%M:%S")
-                > self.start_time
+                lambda v: (
+                    datetime.strptime(v.pubdate, "%Y-%m-%d %H:%M:%S") > self.start_time
+                )
             )
         elif self.mode == "special":
             option = self.search_options[0] if self.search_options else None

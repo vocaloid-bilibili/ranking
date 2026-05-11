@@ -1,12 +1,14 @@
 # video/issue.py
 """期刊数据管理"""
 
-from pathlib import Path
 import re
 from datetime import datetime, timedelta
-from typing import Tuple, List, Optional
+from pathlib import Path
+from typing import List, Optional, Tuple
+
 import pandas as pd
 
+from common.io import load_excel
 from common.logger import logger
 
 
@@ -83,7 +85,7 @@ class Issue:
         issue_date, idx, ex_date = self.infer_issue_info(excel_path)
 
         # 读取主榜
-        df_total = pd.read_excel(excel_path, dtype={"bvid": str})
+        df_total = load_excel(excel_path, dtype={"bvid": str})
         df_top = (
             df_total.sort_values("rank")
             .head(top_n)
@@ -100,7 +102,7 @@ class Issue:
         new_rows = []
 
         if newsong_path and newsong_path.exists():
-            df_new = pd.read_excel(newsong_path, dtype={"bvid": str})
+            df_new = load_excel(newsong_path, dtype={"bvid": str})
             if "rank" in df_new.columns:
                 df_new = df_new.sort_values("rank")
 

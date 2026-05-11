@@ -1,19 +1,18 @@
 # services/json_export.py
 """JSON数据导出服务 - 周刊/月刊/特殊榜单"""
 
-import json
 import datetime
-from pathlib import Path
-from typing import Dict, List, Any, Optional
+import json
 from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import yaml
 
+from common.config import Paths, get_app_config, get_paths
 from common.logger import logger
-from common.config import get_paths, get_app_config, Paths
-
 
 # ==================== JSON编码器 ====================
 
@@ -46,11 +45,12 @@ class BaseExporter(ABC):
         self.json_output_dir.mkdir(parents=True, exist_ok=True)
 
     def read_excel_safe(self, path: Path, sheet_name=0) -> Optional[pd.DataFrame]:
-        """安全读取 Excel"""
         if not path.exists():
             logger.warning(f"文件不存在: {path}")
             return None
         try:
+            return pd.read_excel(path, sheet_name=sheet_name, engine="calamine")
+        except ImportError:
             return pd.read_excel(path, sheet_name=sheet_name)
         except Exception as e:
             logger.error(f"读取Excel失败 [{path}]: {e}")
@@ -68,17 +68,16 @@ class BaseExporter(ABC):
             logger.error(f"读取排除配置失败: {e}")
             return []
 
-    def get_honor_map(self) -> Dict[str, List[str]]:
-        """获取成就映射"""
-        honor_map: Dict[str, List[str]] = {}
-
-        # 成就主文件在 achievement 目录下
+    def get_honor_map(self):
+        honor_map = {}
         master_file = self.paths.achievement / "成就.xlsx"
         if not master_file.exists():
             return honor_map
-
         try:
-            xls = pd.ExcelFile(master_file)
+            try:
+                xls = pd.ExcelFile(master_file, engine="calamine")
+            except ImportError:
+                xls = pd.ExcelFile(master_file)
             for sheet_name in xls.sheet_names:
                 df = pd.read_excel(xls, sheet_name=sheet_name)
                 if "name" in df.columns:
@@ -800,6 +799,195 @@ class MonthlyExporter(BaseExporter):
         self.save_json(data, f"{self.target_month}.json")
 
 
+# ==================== 翻唱周刊导出器 ====================
+
+
+class CoverWeeklyExporter(BaseExporter):
+    """翻唱周刊JSON导出"""
+
+    def __init__(self, target_date: datetime.date = None, paths: Paths = None):
+        super().__init__(paths)
+        self.target_date = target_date or self._get_last_wednesday()
+        self.date_hyphen = self.target_date.strftime("%Y-%m-%d")
+        self.date_compact = self.target_date.strftime("%Y%m%d")
+        logger.info(f"翻唱周刊导出目标日期: {self.date_hyphen}")
+
+    def _get_last_wednesday(self) -> datetime.date:
+        today = datetime.date.today()
+        days_to_subtract = (today.weekday() - 2) % 7
+        return today - datetime.timedelta(days=days_to_subtract)
+
+    def _get_issue_index(self) -> int:
+        start_date_str = self.config.get(
+            "cover_weekly", "start_date", default="2026-04-02"
+        )
+        start_date = datetime.datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        start_index = self.config.get("cover_weekly", "start_index", default=1)
+        days_diff = (self.target_date - start_date).days
+        return (days_diff // 7) + start_index
+
+    def _get_ranking_path(self, date_str: str) -> Path:
+        return self.paths.cover_weekly_main / f"翻唱{date_str}.xlsx"
+
+    def _get_last_week_data(self) -> Optional[pd.DataFrame]:
+        last_week = self.target_date - datetime.timedelta(days=7)
+        return self.read_excel_safe(
+            self._get_ranking_path(last_week.strftime("%Y-%m-%d"))
+        )
+
+    def _get_last_week_op(self) -> Dict:
+        df = self._get_last_week_data()
+        if df is None or df.empty:
+            return {}
+
+        row = df[df["rank"] == 1]
+        if row.empty:
+            return {}
+
+        rec = row.iloc[0]
+        return {
+            "title": rec.get("title", ""),
+            "bvid": rec.get("bvid", ""),
+            "author": rec.get("author", ""),
+            "pubdate": rec.get("pubdate", ""),
+            "image_url": rec.get("image_url", ""),
+        }
+
+    def calculate_stats(self, df_total: pd.DataFrame) -> Dict:
+        stats = {}
+        df_top100 = df_total.head(100)
+
+        if "point" in df_total.columns:
+            stats["count_over_500k"] = len(df_total[df_total["point"] >= 500000])
+            stats["count_over_100k"] = len(df_total[df_total["point"] >= 100000])
+            stats["count_over_50k"] = len(df_total[df_total["point"] >= 50000])
+        else:
+            stats["count_over_500k"] = 0
+            stats["count_over_100k"] = 0
+            stats["count_over_50k"] = 0
+
+        metrics = ["view", "favorite", "coin", "like", "danmaku", "reply", "share"]
+        for metric in metrics:
+            if metric in df_top100.columns:
+                stats[f"total_{metric}"] = int(
+                    pd.to_numeric(df_top100[metric], errors="coerce").sum()
+                )
+            else:
+                stats[f"total_{metric}"] = 0
+
+        if len(df_total) >= 20 and "point" in df_total.columns:
+            stats["cutoff_main"] = df_total.iloc[19]["point"]
+        else:
+            stats["cutoff_main"] = 0
+
+        if len(df_total) >= 100 and "point" in df_total.columns:
+            stats["cutoff_sub"] = df_total.iloc[99]["point"]
+        else:
+            stats["cutoff_sub"] = (
+                df_total.iloc[-1]["point"] if not df_total.empty else 0
+            )
+
+        return stats
+
+    def _get_last_week_role_ranks(
+        self, role_col: str, exclude_list: List[str]
+    ) -> Dict[str, int]:
+        df = self._get_last_week_data()
+        if df is None:
+            return {}
+
+        stats_map: Dict[str, int] = {}
+        if role_col in df.columns and "point" in df.columns:
+            for _, row in df.iterrows():
+                points = row["point"] if pd.notna(row["point"]) else 0
+                for name in str(row[role_col]).split("、"):
+                    name = name.strip()
+                    if name and name not in exclude_list:
+                        stats_map[name] = stats_map.get(name, 0) + points
+
+        sorted_list = sorted(stats_map.items(), key=lambda x: x[1], reverse=True)
+        return {name: idx + 1 for idx, (name, _) in enumerate(sorted_list)}
+
+    def process(self) -> Dict[str, Any]:
+        issue_index = self._get_issue_index()
+        start_date = self.target_date - datetime.timedelta(days=7)
+
+        fmt_start = f"{start_date.year}年{start_date.month}月{start_date.day}日 00:00"
+        fmt_end = f"{self.target_date.year}年{self.target_date.month}月{self.target_date.day}日 00:00"
+
+        output = {
+            "date": self.date_compact,
+            "index": issue_index,
+            "period": f"{fmt_start} ~ {fmt_end}",
+            "op": self._get_last_week_op(),
+            "stat": {},
+        }
+
+        path_total = self._get_ranking_path(self.date_hyphen)
+        df_total = self.read_excel_safe(path_total)
+
+        if df_total is None:
+            logger.error("翻唱周刊榜单文件缺失")
+            return output
+
+        logger.info(f"处理第 {issue_index} 期翻唱周刊")
+
+        current_stats = self.calculate_stats(df_total)
+
+        df_last = self._get_last_week_data()
+        if df_last is not None:
+            original_date = self.target_date
+            self.target_date = self.target_date - datetime.timedelta(days=7)
+            last_stats = self.calculate_stats(df_last)
+            self.target_date = original_date
+
+            output["stat"] = {
+                key: {"value": value, "diff": value - last_stats.get(key, value)}
+                for key, value in current_stats.items()
+            }
+        else:
+            output["stat"] = {
+                key: {"value": value, "diff": "-"}
+                for key, value in current_stats.items()
+            }
+
+        top_20_total = df_total.head(20).to_dict(orient="records")
+        sub_rank_total = df_total.iloc[20:100].to_dict(orient="records")
+
+        honor_map = self.get_honor_map()
+        all_songs = top_20_total + sub_rank_total
+        for song in all_songs:
+            song["honor"] = honor_map.get(str(song.get("name", "")).strip(), [])
+
+        output["total_rank_top20"] = top_20_total
+        output["total_rank_sub"] = sub_rank_total
+
+        exclude_list = self.load_exclude_list()
+        output["vocal_stats"] = self.calculate_role_stats(
+            df_total, "vocal", "point", exclude_list, 10
+        )
+        output["producer_stats"] = self.calculate_role_stats(
+            df_total, "author", "point", [], 10
+        )
+
+        last_vocal_ranks = self._get_last_week_role_ranks("vocal", exclude_list)
+        last_producer_ranks = self._get_last_week_role_ranks("author", [])
+
+        for item in output["vocal_stats"]:
+            item["last_rank"] = last_vocal_ranks.get(item["name"], "-")
+        for item in output["producer_stats"]:
+            item["last_rank"] = last_producer_ranks.get(item["name"], "-")
+
+        bvid_map, name_map = self.build_image_map(df_total)
+        self.fill_images(all_songs, bvid_map, name_map)
+
+        return output
+
+    def run(self):
+        data = self.process()
+        self.save_json(data, f"cover_{self.date_hyphen}.json")
+
+
 # ==================== 特殊榜单导出器 ====================
 
 
@@ -848,6 +1036,11 @@ def export_weekly(target_date: datetime.date = None):
 
 def export_monthly(target_month: str = None):
     exporter = MonthlyExporter(target_month=target_month)
+    exporter.run()
+
+
+def export_cover_weekly(target_date: datetime.date = None):
+    exporter = CoverWeeklyExporter(target_date=target_date)
     exporter.run()
 
 

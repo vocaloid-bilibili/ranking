@@ -1,9 +1,10 @@
 # ranking/streak.py
 """Streak管理模块"""
 
-import pandas as pd
-from typing import List
 from dataclasses import asdict
+from typing import List
+
+import pandas as pd
 
 from common.models import VideoInfo
 

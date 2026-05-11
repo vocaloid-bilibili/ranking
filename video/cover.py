@@ -1,11 +1,11 @@
 # video/cover.py
 """封面生成器"""
 
-from pathlib import Path
-from typing import List, Dict, Any
 import random
 import subprocess
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List
 
 import pandas as pd
 from PIL import ImageFont
@@ -33,7 +33,7 @@ class CoverGenerator:
         try:
             date_obj = datetime.strptime(issue_date, "%Y%m%d")
             weekday = date_obj.weekday()
-        except:
+        except ValueError:
             weekday = 6
         return self.weekday_colors.get(weekday, "#55CCCC")
 
@@ -62,11 +62,11 @@ class CoverGenerator:
         for r in rows:
             try:
                 rank = int(r.get("rank", 999))
-            except:
+            except (ValueError, TypeError):
                 rank = 999
             try:
                 count = int(r.get("count", 0))
-            except:
+            except (ValueError, TypeError):
                 count = 0
 
             result.append(
@@ -185,11 +185,8 @@ class CoverGenerator:
         font_path = ffmpeg_escape_path(self.font_bold_file)
 
         # 解析日期
-        try:
-            date_obj = datetime.strptime(issue_date, "%Y%m%d")
-            month, day = date_obj.strftime("%m"), date_obj.strftime("%d")
-        except:
-            month, day = "01", "01"
+        date_obj = datetime.strptime(issue_date, "%Y%m%d")
+        month, day = date_obj.strftime("%m"), date_obj.strftime("%d")
 
         # 构建 FFmpeg 命令
         cmd = [self.ffmpeg_bin, "-y"]
@@ -265,12 +262,12 @@ class CoverGenerator:
 
         # 阴影
         shadow_cmds = [
-            f"drawbox=x={pos['v0'][0]+12}:y={pos['v0'][1]+12}:w=1024:h=586:c=black@0.2:t=fill",
-            f"drawbox=x={pos['v1'][0]+12}:y={pos['v1'][1]+12}:w=824:h=474:c=black@0.2:t=fill",
+            f"drawbox=x={pos['v0'][0] + 12}:y={pos['v0'][1] + 12}:w=1024:h=586:c=black@0.2:t=fill",
+            f"drawbox=x={pos['v1'][0] + 12}:y={pos['v1'][1] + 12}:w=824:h=474:c=black@0.2:t=fill",
         ]
         for k in ["v2", "v3", "v4", "v5"]:
             shadow_cmds.append(
-                f"drawbox=x={pos[k][0]+10}:y={pos[k][1]+10}:w=436:h=252:c=black@0.25:t=fill"
+                f"drawbox=x={pos[k][0] + 10}:y={pos[k][1] + 10}:w=436:h=252:c=black@0.25:t=fill"
             )
         filters.append(f"[bg_blur]{','.join(shadow_cmds)},gblur=sigma=25[bg_shadow]")
 
@@ -360,7 +357,7 @@ class CoverGenerator:
         try:
             date_obj = datetime.strptime(issue_date, "%Y%m%d")
             month, day = date_obj.strftime("%m"), date_obj.strftime("%d")
-        except:
+        except ValueError:
             month = issue_date[-4:-2] if len(issue_date) >= 6 else "01"
             day = issue_date[-2:] if len(issue_date) >= 2 else "01"
 
@@ -483,7 +480,7 @@ class CoverGenerator:
         try:
             font_obj = ImageFont.truetype(self.font_bold_file, font_size_1)
             w1 = font_obj.getlength(text1)
-        except:
+        except (OSError, IOError):
             w1 = 800
         anchor_x = (W / 2) + (w1 / 2)
 

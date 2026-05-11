@@ -1,14 +1,15 @@
 # video/clip.py
 """视频片段生成"""
 
+import subprocess
+import time
 from pathlib import Path
 from typing import List, Optional
-import subprocess
 
 import pandas as pd
 
-from common.logger import logger
 from bilibili.client import BilibiliClient
+from common.logger import logger
 from video.climax import find_climax_segment
 from video.overlay import build_overlay_cmd
 
@@ -47,6 +48,10 @@ class ClipGenerator:
         if not segment:
             return None
 
+        if not segment.exists() or segment.stat().st_size < 1024:
+            logger.error(f"[{bvid}] segment 文件无效: {segment}")
+            return None
+
         overlay_args, output_path = build_overlay_cmd(
             segment_path=segment,
             row=row,
@@ -69,6 +74,13 @@ class ClipGenerator:
     def _ensure_segment(self, bvid: str, duration: float) -> Optional[Path]:
         """确保视频片段存在"""
         video = self.api_client.download_video(bvid)
+        for attempt in range(3):
+            video = self.api_client.download_video(bvid)
+            if video:
+                break
+            wait = 5 * (attempt + 1)
+            logger.warning(f"[{bvid}] 下载失败，{wait}s 后重试 ({attempt + 1}/3)")
+            time.sleep(wait)
         if not video:
             return None
 
@@ -82,7 +94,7 @@ class ClipGenerator:
 
         try:
             start, _ = find_climax_segment(str(audio), clip_duration=duration)
-        except:
+        except Exception:
             start = 0.0
 
         fade_out = max(duration - 1.0, 0.0)
@@ -114,7 +126,7 @@ class ClipGenerator:
         try:
             subprocess.run(cmd, check=True)
             return cached
-        except:
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
             return None
 
     def _add_encode_args(self, cmd: List[str]):

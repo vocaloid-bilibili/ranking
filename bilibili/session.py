@@ -1,10 +1,11 @@
 # bilibili/session.py
 """B站Session管理"""
 
-import time
 import asyncio
-import aiohttp
+import time
 from typing import Optional
+
+import aiohttp
 from bilibili_api import request_settings
 
 from common.logger import logger
@@ -25,7 +26,7 @@ async def reset_bilibili_api_state():
                             await client.aclose()
                         elif hasattr(client, "close"):
                             client.close()
-                    except:
+                    except Exception:
                         pass
                     setattr(network, attr, None)
         for attr in [

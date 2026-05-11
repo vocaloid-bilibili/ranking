@@ -1,5 +1,6 @@
 # 新曲排行榜.py
 import asyncio
+
 from ranking.processor import RankingProcessor
 
 

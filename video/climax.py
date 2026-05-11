@@ -2,10 +2,12 @@
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Optional, Tuple
+
 import librosa
 import numpy as np
 import torch
+
 from common.logger import logger
 
 

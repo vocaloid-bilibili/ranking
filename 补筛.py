@@ -1,10 +1,10 @@
 # 补筛.py
 import asyncio
 
-from common.config import get_paths
-from common.models import ScraperConfig
 from bilibili.client import BilibiliClient
 from bilibili.scraper import BilibiliScraper
+from common.config import get_paths
+from common.models import ScraperConfig
 
 
 async def main():

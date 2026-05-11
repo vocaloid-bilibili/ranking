@@ -6,15 +6,14 @@ from typing import Dict, List, Tuple
 
 import pandas as pd
 
+from video.icons import get_icon_renderer
 from video.utils import (
     ffmpeg_escape,
     ffmpeg_escape_path,
-    write_text_to_file,
     format_number,
     split_text_by_pixel_width,
+    write_text_to_file,
 )
-from video.icons import get_icon_renderer
-
 
 # 布局常量
 TITLE_START_Y = 60
@@ -77,7 +76,16 @@ def build_overlay_cmd(
     stats_order = ["播放", "收藏", "硬币", "点赞", "弹幕", "评论", "分享"]
     icon_indices = {}
     for idx, label in enumerate(stats_order):
-        cmd += ["-loop", "1", "-i", str(icon_paths[label])]
+        cmd += [
+            "-f",
+            "image2",
+            "-loop",
+            "1",
+            "-framerate",
+            "60",
+            "-i",
+            str(icon_paths[label]),
+        ]
         icon_indices[label] = idx + 1
 
     # 构建滤镜

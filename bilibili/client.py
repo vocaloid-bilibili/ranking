@@ -2,20 +2,20 @@
 """B站API客户端"""
 
 import asyncio
-import subprocess
 import random
-from pathlib import Path
+import subprocess
 from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Any, Set
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set
 
 import aiohttp
 from bilibili_api import search
 
+from bilibili.session import SessionManager
 from common.logger import logger
+from common.models import ScraperConfig, SearchOptions, SearchRestrictions
 from common.proxy import Proxy
 from common.retry import RetryHandler
-from common.models import ScraperConfig, SearchOptions, SearchRestrictions
-from bilibili.session import SessionManager
 
 
 class BilibiliClient:
@@ -367,6 +367,7 @@ class BilibiliClient:
                     "format": "bv*+ba/best",
                     "outtmpl": str(bvid_dir / f"{bvid}.%(ext)s"),
                     "quiet": True,
+                    "cookiefile": "config\\cookies.txt",
                 }
             ) as ydl:
                 ydl.extract_info(
@@ -403,7 +404,7 @@ class BilibiliClient:
                 check=True,
             )
             return audio
-        except:
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
             return None
 
     # ==================== 工具 ====================
@@ -414,7 +415,7 @@ class BilibiliClient:
         for fmt in ["%Y-%m-%d", "%Y%m%d", "%Y/%m/%d"]:
             try:
                 return datetime.strptime(date_str.strip(), fmt)
-            except:
+            except ValueError:
                 continue
         return None
 

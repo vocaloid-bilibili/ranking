@@ -2,9 +2,9 @@
 """数据模型定义"""
 
 from dataclasses import dataclass, field
-from typing import List, Optional
-from pathlib import Path
 from enum import Enum, auto
+from pathlib import Path
+from typing import List, Optional
 
 
 class RankingType(Enum):

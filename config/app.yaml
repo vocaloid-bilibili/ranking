@@ -26,6 +26,8 @@ paths:
     main: "data/monthly/main"
     new: "data/monthly/new"
   annual: "data/annual"
+  cover_weekly:
+    main: "data/cover-weekly/main"
   special:
     data: "data/special/data"
     ranking: "data/special/ranking"
@@ -36,7 +38,6 @@ paths:
   downloads:
     video: "downloads/videos"
     image: "downloads/image_url"
-
 # ==================== 配置文件 ====================
 configs:
   keywords: "config/keywords.json"
@@ -145,6 +146,19 @@ annual:
   output_paths:
     toll_ranking: "data/annual/{target_date}.xlsx"
 
+# 翻唱周刊
+cover_weekly:
+  ranking_type: "weekly"
+  has_new_ranking: false
+  start_date: "2026-04-08" # 首期基准日（周三）
+  start_index: 1
+  update_options:
+    count: true
+    rank_and_rate: true
+  filter:
+    type: "翻唱"
+  output_paths:
+    toll_ranking: "data/cover-weekly/main/翻唱{target_date}.xlsx"
 # 特刊
 special:
   ranking_type: "special"

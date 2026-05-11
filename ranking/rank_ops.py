@@ -1,9 +1,11 @@
 # ranking/rank_ops.py
 """DataFrame级别的排名操作"""
 
-import pandas as pd
 from pathlib import Path
 
+import pandas as pd
+
+from common.io import load_excel
 
 STAT_COLS = ["view", "favorite", "coin", "like", "danmaku", "reply", "share"]
 RATE_COLS = ["viewR", "favoriteR", "coinR", "likeR", "danmakuR", "replyR", "shareR"]
@@ -86,7 +88,7 @@ def update_rank_change(df: pd.DataFrame, prev_path: Path) -> pd.DataFrame:
         df["rate"] = "NEW"
         return df
 
-    df_prev = pd.read_excel(prev_path)
+    df_prev = load_excel(prev_path)
     prev_dict = df_prev.set_index("name")[["rank", "point"]].to_dict(orient="index")
 
     bridge = _build_bvid_name_bridge(df, df_prev)
@@ -123,7 +125,7 @@ def update_board_count(
         df["count"] = (df["rank"] <= top_n).astype(int)
         return df
 
-    df_prev = pd.read_excel(prev_path)
+    df_prev = load_excel(prev_path)
     prev_count = df_prev.set_index("name")["count"].to_dict()
 
     bridge = _build_bvid_name_bridge(df, df_prev)

@@ -1,9 +1,10 @@
 from pathlib import Path
+
 import yaml
 
-from services.sftp import SFTPClient
 from common.config import get_paths
 from common.logger import logger
+from services.sftp import SFTPClient
 
 
 def main():

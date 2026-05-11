@@ -2,13 +2,13 @@
 """记录处理模块 - 批量计算评分"""
 
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 import pandas as pd
 
 from common.logger import logger
-from common.models import VideoStats, ScoreResult, RankingType
+from common.models import RankingType, ScoreResult, VideoStats
 from ranking.calculator import calculate_score
-
 
 STAT_FIELDS = ["view", "favorite", "coin", "like", "danmaku", "reply", "share"]
 METADATA_FIELDS = [
@@ -121,7 +121,7 @@ class RecordProcessor:
                 if pubdate < threshold:
                     return None  # 早于周期，跳过
                 return VideoStats()  # 新视频，返回空统计
-            except:
+            except (ValueError, TypeError):
                 pass
         return None
 

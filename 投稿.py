@@ -1,13 +1,14 @@
 # 投稿.py
 """日刊视频上传入口"""
 
-import re
 import json
-import yaml
+import re
 import subprocess
-from pathlib import Path
 from datetime import datetime
-from typing import Dict, Tuple, List
+from pathlib import Path
+from typing import Dict, List, Tuple
+
+import yaml
 
 from video.config import load_video_config
 

@@ -2,11 +2,12 @@
 """SVG 图标渲染器"""
 
 import tempfile
+import threading
 from pathlib import Path
 from typing import Dict, Optional
 
-import yaml
 import cairosvg
+import yaml
 
 
 class IconRenderer:
@@ -18,6 +19,7 @@ class IconRenderer:
         self._render_config: Optional[Dict] = None
         self._cache: Dict[str, Path] = {}
         self._temp_dir: Optional[Path] = None
+        self._lock = threading.Lock()
 
     def _load_config(self):
         if self._icons is None:
@@ -32,41 +34,45 @@ class IconRenderer:
         return self._temp_dir
 
     def render(self, name: str, size: int = None, color: str = None) -> Path:
-        """渲染图标为 PNG 并返回路径"""
-        self._load_config()
+        with self._lock:
+            self._load_config()
 
-        size = size or self._render_config.get("size", 30)
-        color = color or self._render_config.get("color", "#DCDCDC")
+            size = size or self._render_config.get("size", 30)
+            color = color or self._render_config.get("color", "#DCDCDC")
 
-        cache_key = f"{name}_{size}_{color}"
-        if cache_key in self._cache:
-            return self._cache[cache_key]
+            cache_key = f"{name}_{size}_{color}"
+            if cache_key in self._cache:
+                cached = self._cache[cache_key]
+                if cached.exists() and cached.stat().st_size > 0:  # ← 验证文件
+                    return cached
 
-        icon_data = self._icons.get(name)
-        if not icon_data:
-            raise ValueError(f"未知图标: {name}")
+            icon_data = self._icons.get(name)
+            if not icon_data:
+                raise ValueError(f"未知图标: {name}")
 
-        viewBox = icon_data.get("viewBox", "0 0 24 24")
-        path_d = icon_data.get("path", "")
-        fill_rule = icon_data.get("fillRule", "")
-        clip_rule = icon_data.get("clipRule", "")
-        path_attrs = f'd="{path_d}" fill="{color}"'
-        if fill_rule:
-            path_attrs += f' fill-rule="{fill_rule}"'
-        if clip_rule:
-            path_attrs += f' clip-rule="{clip_rule}"'
+            viewBox = icon_data.get("viewBox", "0 0 24 24")
+            path_d = icon_data.get("path", "")
+            fill_rule = icon_data.get("fillRule", "")
+            clip_rule = icon_data.get("clipRule", "")
+            path_attrs = f'd="{path_d}" fill="{color}"'
+            if fill_rule:
+                path_attrs += f' fill-rule="{fill_rule}"'
+            if clip_rule:
+                path_attrs += f' clip-rule="{clip_rule}"'
 
-        svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="{viewBox}" width="{size}" height="{size}">
-            <path {path_attrs}/>
-        </svg>"""
+            svg = (
+                f'<svg xmlns="http://www.w3.org/2000/svg" '
+                f'viewBox="{viewBox}" width="{size}" height="{size}">'
+                f"<path {path_attrs}/></svg>"
+            )
 
-        temp_dir = self._ensure_temp_dir()
-        output_path = temp_dir / f"{name}_{size}.png"
+            temp_dir = self._ensure_temp_dir()
+            output_path = temp_dir / f"{name}_{size}.png"
 
-        cairosvg.svg2png(bytestring=svg.encode(), write_to=str(output_path))
+            cairosvg.svg2png(bytestring=svg.encode(), write_to=str(output_path))
 
-        self._cache[cache_key] = output_path
-        return output_path
+            self._cache[cache_key] = output_path
+            return output_path
 
     def get_all(self, size: int = None) -> Dict[str, Path]:
         """获取所有图标路径"""

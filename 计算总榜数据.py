@@ -1,5 +1,6 @@
 # 计算总榜数据.py
 import asyncio
+
 from ranking.processor import RankingProcessor
 
 

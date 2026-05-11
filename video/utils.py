@@ -4,6 +4,7 @@
 import math
 from pathlib import Path
 from typing import List
+
 from PIL import ImageFont
 
 
