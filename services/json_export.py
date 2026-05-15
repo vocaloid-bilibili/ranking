@@ -2,7 +2,7 @@
 """JSON数据导出服务 - 周刊/月刊/特殊榜单"""
 
 import datetime
-import json
+import simplejson as json
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -185,7 +185,7 @@ class BaseExporter(ABC):
         output_path = self.json_output_dir / filename
         try:
             with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=4, cls=NpEncoder)
+                json.dump(data, f, ensure_ascii=False, indent=4, ignore_nan=True, cls=NpEncoder)
             logger.info(f"已保存: {output_path}")
         except Exception as e:
             logger.error(f"写入JSON失败: {e}")

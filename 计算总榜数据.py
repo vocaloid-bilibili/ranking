@@ -6,7 +6,7 @@ from ranking.processor import RankingProcessor
 
 async def main():
     processor = RankingProcessor(period="special")
-    await processor.run(song_data="梦的结唱9")
+    await processor.run(song_data="梦的结唱10-PICKUP")
 
 
 if __name__ == "__main__":
