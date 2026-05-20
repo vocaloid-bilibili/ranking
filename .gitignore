@@ -19,7 +19,8 @@ __pycache__/
 !config/icons.yaml
 !config/special.yaml
 
-
+*.jsonl
+*.flv
 *.txt
 *.md
 *.log
