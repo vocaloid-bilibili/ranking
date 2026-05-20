@@ -5,15 +5,24 @@ import re
 from functools import lru_cache
 from pathlib import Path
 
-import pandas as pd
 import yaml
 
-_EXCEL_ILLEGAL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 _HTML_TAGS = re.compile(r"<.*?>")
 _INVISIBLE_CHARS = re.compile(
     r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F"
     r"\u200B-\u200F\u2028-\u202F\u205F-\u206F\uFEFF\uFFFE-\uFFFF]"
 )
+
+
+def clean_text(text: str, html: bool = True, invisible: bool = True) -> str:
+    """综合清洗文本"""
+    if not isinstance(text, str):
+        return text
+    if html:
+        text = _HTML_TAGS.sub("", text)
+    if invisible:
+        text = _INVISIBLE_CHARS.sub("", text)
+    return text
 
 
 @lru_cache(maxsize=1)
@@ -28,71 +37,11 @@ def _load_tid_map() -> dict:
         return {}
 
 
-def format_tid(tid) -> str:
-    """将 tid 转换为 tname"""
-    if pd.isna(tid):
-        return ""
-
+def tid_to_tname(tid) -> str:
+    """将分区 ID 转换为分区名称"""
     try:
         tid_int = int(float(tid))
     except (ValueError, TypeError):
         return str(tid)
-
     tid_map = _load_tid_map()
     return tid_map.get(tid_int, str(tid_int))
-
-
-def format_pubdate(pubdate) -> str:
-    """格式化发布时间"""
-    if pd.isna(pubdate):
-        return ""
-
-    if isinstance(pubdate, str):
-        return pubdate
-
-    try:
-        return pubdate.strftime("%Y-%m-%d %H:%M:%S")
-    except (AttributeError, ValueError):
-        return str(pubdate)
-
-
-# 列格式化器映射
-COLUMN_FORMATTERS = {
-    "tid": format_tid,
-    "pubdate": format_pubdate,
-}
-
-
-def clean_excel_chars(text: str) -> str:
-    """移除Excel不支持的控制字符"""
-    if not isinstance(text, str):
-        return text
-    return _EXCEL_ILLEGAL_CHARS.sub("", text)
-
-
-def clean_text(text: str, html: bool = True, invisible: bool = True) -> str:
-    """综合清洗文本"""
-    if not isinstance(text, str):
-        return text
-    if html:
-        text = _HTML_TAGS.sub("", text)
-    if invisible:
-        text = _INVISIBLE_CHARS.sub("", text)
-    return text
-
-
-def format_duration(seconds: int) -> str:
-    """将秒数格式化为 "M分S秒" 格式"""
-    seconds = max(0, seconds - 1)
-    minutes, secs = divmod(seconds, 60)
-    return f"{minutes}分{secs}秒" if minutes > 0 else f"{secs}秒"
-
-
-def format_aid(aid) -> str:
-    """格式化aid（防止科学计数法，保持整数字符串）"""
-    if pd.isna(aid) or str(aid).strip() == "":
-        return ""
-    try:
-        return f"{float(aid):.0f}"
-    except (ValueError, TypeError):
-        return str(aid)

@@ -1,184 +1,20 @@
 # config/app.yaml
-# 应用程序统一配置
 
-# ==================== 基础目录 ====================
 dirs:
   data: "data"
   config: "config"
   export: "export"
   downloads: "downloads"
 
-# ==================== 数据路径 ====================
 paths:
-  collected: "data/collected.xlsx"
-  snapshot:
-    main: "data/snapshot/main"
-    new: "data/snapshot/new"
-  daily:
-    diff_old: "data/daily/diff/old"
-    diff_new: "data/daily/diff/new"
-    ranking_main: "data/daily/ranking/main"
-    ranking_new: "data/daily/ranking/new"
-  weekly:
-    main: "data/weekly/main"
-    new: "data/weekly/new"
-  monthly:
-    main: "data/monthly/main"
-    new: "data/monthly/new"
-  annual: "data/annual"
-  cover_weekly:
-    main: "data/cover-weekly/main"
-  special:
-    data: "data/special/data"
-    ranking: "data/special/ranking"
-  features:
-    achievement: "data/features/achievement"
-    milestone: "data/features/milestone"
-    history: "data/features/history"
-  downloads:
-    video: "downloads/videos"
-    image: "downloads/image_url"
-# ==================== 配置文件 ====================
-configs:
+  collected: "data/collected.jsonl"
+  snapshot_main: "data/snapshot/main"
+  snapshot_new: "data/snapshot/new"
+  special_data: "data/special/data"
   keywords: "config/keywords.json"
-  usecols: "config/usecols.json"
+  columns: "config/columns.json"
+  special_config: "config/special.yaml"
   ai: "config/ai.yaml"
   prompt_template: "config/prompt_template.txt"
   exclude_singers: "config/exclude_singers.yaml"
-  special: "config/special.yaml"
   sftp: "config/sftp.yaml"
-
-# ==================== 文件名模板 ====================
-templates:
-  snapshot_main: "{date}.xlsx"
-  snapshot_new: "新曲{date}.xlsx"
-  diff: "{new_date}与{old_date}.xlsx"
-  diff_new: "新曲{new_date}与新曲{old_date}.xlsx"
-  ranking_new: "新曲榜{new_date}与{old_date}.xlsx"
-  combined: "{new_date}与{old_date}.xlsx"
-
-# ==================== 成就检测 ====================
-achievement:
-  start_file: "2024-09-07.xlsx"
-  start_index: 1
-
-# ==================== 重复检测 ====================
-duplicate:
-  hash_threshold: 15
-  date_threshold_days: 3
-
-# ==================== 数据源 ====================
-data_sources:
-  toll_data: "data/snapshot/main/{date}.xlsx"
-  new_data: "data/snapshot/new/新曲{date}.xlsx"
-  collected: "data/collected.xlsx"
-
-# ==================== 周期配置 ====================
-
-# 日刊差异
-daily:
-  threshold: 2000
-  input_paths:
-    main_data: "data/snapshot/main/{date}.xlsx"
-    new_song_data: "data/snapshot/new/新曲{date}.xlsx"
-    collected_songs: "data/collected.xlsx"
-  output_paths:
-    main_diff: "data/daily/diff/old/{new_date}与{old_date}.xlsx"
-    new_song_diff: "data/daily/diff/new/新曲{new_date}与新曲{old_date}.xlsx"
-
-# 日刊新曲
-daily_new_song:
-  input_paths:
-    diff_file: "data/daily/diff/new/新曲{new_date}与新曲{now_date}.xlsx"
-    previous_ranking: "data/daily/ranking/new/新曲榜{now_date}与{old_date}.xlsx"
-  output_paths:
-    ranking: "data/daily/ranking/new/新曲榜{new_date}与{now_date}.xlsx"
-
-# 日刊合并
-daily_combination:
-  input_paths:
-    main_diff: "data/daily/diff/old/{new_date}与{now_date}.xlsx"
-    new_song_diff: "data/daily/diff/new/新曲{new_date}与新曲{now_date}.xlsx"
-    collected_songs: "data/collected.xlsx"
-    main_data: "data/snapshot/main/{new_date}.xlsx"
-    new_song_data: "data/snapshot/new/新曲{new_date}.xlsx"
-    previous_combined: "data/daily/ranking/main/{now_date}与{old_date}.xlsx"
-  output_paths:
-    collected_songs: "data/collected.xlsx"
-    combined_ranking: "data/daily/ranking/main/{new_date}与{now_date}.xlsx"
-    main_data: "data/snapshot/main/{new_date}.xlsx"
-
-# 周刊
-weekly:
-  ranking_type: "weekly"
-  has_new_ranking: true
-  start_date: "2024-09-07"
-  start_index: 1
-  new_song_days: 7
-  update_options:
-    count: true
-    rank_and_rate: true
-  output_paths:
-    toll_ranking: "data/weekly/main/{target_date}.xlsx"
-    new_ranking: "data/weekly/new/新曲{target_date}.xlsx"
-
-# 月刊
-monthly:
-  ranking_type: "monthly"
-  has_new_ranking: true
-  start_year: 2024
-  start_month: 9
-  start_index: 1
-  update_options:
-    count: false
-    rank_and_rate: true
-  output_paths:
-    toll_ranking: "data/monthly/main/{target_date}.xlsx"
-    new_ranking: "data/monthly/new/新曲{target_date}.xlsx"
-
-# 年刊
-annual:
-  ranking_type: "annual"
-  has_new_ranking: false
-  update_options:
-    count: false
-    rank_and_rate: false
-  output_paths:
-    toll_ranking: "data/annual/{target_date}.xlsx"
-
-# 翻唱周刊
-cover_weekly:
-  ranking_type: "weekly"
-  has_new_ranking: false
-  start_date: "2026-04-08" # 首期基准日（周三）
-  start_index: 1
-  update_options:
-    count: true
-    rank_and_rate: true
-  filter:
-    type: "翻唱"
-  output_paths:
-    toll_ranking: "data/cover-weekly/main/翻唱{target_date}.xlsx"
-# 特刊
-special:
-  ranking_type: "special"
-  processing_options:
-    use_old_data: false
-    collected_data: "data/collected.xlsx"
-  paths:
-    input_path: "data/special/data/{song_data}.xlsx"
-    output_path: "data/special/ranking/{song_data}.xlsx"
-
-# 历史回顾
-history:
-  input_paths:
-    weekly_ranking: "data/weekly/main/{old_date}.xlsx"
-  output_paths:
-    history_file: "data/features/history/历史{target_date}.xlsx"
-
-# AI标注
-ai_tagger:
-  input_paths:
-    new_song_diff: "data/daily/diff/new/新曲{new_date}与新曲{old_date}.xlsx"
-  output_paths:
-    tagged_output: "data/daily/diff/new/新曲{new_date}与新曲{old_date}AI.xlsx"

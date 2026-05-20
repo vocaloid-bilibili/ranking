@@ -1,10 +1,14 @@
-# 抓取数据.py
+# scripts/crawl_snapshot.py
 import asyncio
+
+import _bootstrap  # noqa: F401
 
 from bilibili.client import BilibiliClient
 from bilibili.scraper import BilibiliScraper
 from common.config import get_paths
+from common.io import save_jsonl
 from common.models import ScraperConfig
+from crawl.pipeline import CrawlPipeline
 
 
 async def main():
@@ -12,17 +16,19 @@ async def main():
 
     config = ScraperConfig(OUTPUT_DIR=paths.snapshot_main)
     client = BilibiliClient(config=config)
-    scraper = BilibiliScraper(
-        client=client,
+    scraper = BilibiliScraper(client=client, config=config)
+    pipeline = CrawlPipeline(
+        scraper=scraper,
         mode="old",
         config=config,
         input_file=paths.collected,
     )
 
     try:
-        videos = await scraper.process_old_songs()
-        usecols = paths.load_usecols("stat")
-        await scraper.save_to_excel(videos, usecols=usecols)
+        videos = await pipeline.process_old_songs()
+        if videos:
+            usecols = paths.load_usecols("snapshot_main")
+            save_jsonl(videos, pipeline.filename, usecols=usecols)
     finally:
         await client.close()
 

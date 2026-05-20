@@ -13,7 +13,7 @@ __pycache__/
 *.json
 
 !config/app.yaml
-!config/usecols.json
+!config/columns.json
 !config/keywords.json
 !config/exclude_singers.yaml
 !config/icons.yaml
@@ -27,7 +27,7 @@ __pycache__/
 !config/prompt_template.txt
 !requirements.txt
 
-
+*.jsonl
 *.jpg
 *.png
 *.mp4
@@ -35,6 +35,7 @@ __pycache__/
 *.wav
 *.html
 *.part
+*.flv
 *.zip
 
 *测试*

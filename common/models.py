@@ -21,19 +21,14 @@ class RankingType(Enum):
 class VideoInfo:
     """视频信息"""
 
-    title: str
-    bvid: str
-    aid: str
-    name: str
-    author: str
+    title: str = ""
+    bvid: str = ""
+    aid: str = ""
     uploader: str = ""
-    copyright: int = 0
-    synthesizer: str = ""
-    vocal: str = ""
-    type: str = ""
+    copyright: int = 1
     pubdate: str = ""
     duration: str = ""
-    page: int = 0
+    page: int = 1
     tid: str = ""
     view: int = 0
     favorite: int = 0
@@ -42,7 +37,7 @@ class VideoInfo:
     danmaku: int = 0
     reply: int = 0
     share: int = 0
-    image_url: str = ""
+    thumbnail: str = ""
     intro: str = ""
     streak: int = 0
 
@@ -78,7 +73,6 @@ class VideoStats:
 class ScoreResult:
     """评分计算结果"""
 
-    # 统计增量
     view: int = 0
     favorite: int = 0
     coin: int = 0
@@ -86,7 +80,6 @@ class ScoreResult:
     danmaku: int = 0
     reply: int = 0
     share: int = 0
-    # 评分系数
     view_rate: float = 0.0
     favorite_rate: float = 0.0
     coin_rate: float = 0.0
@@ -94,12 +87,10 @@ class ScoreResult:
     danmaku_rate: float = 0.0
     reply_rate: float = 0.0
     share_rate: float = 0.0
-    # 修正系数
     fix_a: float = 0.0
     fix_b: float = 0.0
     fix_c: float = 0.0
     fix_d: float = 0.0
-    # 总分
     point: int = 0
 
 
@@ -144,28 +135,6 @@ class ScraperConfig:
     BASE_THRESHOLD: int = 100
     HOT_RANK_CATE_ID: int = 30
     LOW_VIEW_STOP_COUNT: int = 2
-    LOCAL_METADATA_FIELDS: List[str] = field(
-        default_factory=lambda: [
-            "bvid",
-            "name",
-            "author",
-            "copyright",
-            "synthesizer",
-            "vocal",
-            "type",
-        ]
-    )
-    UPDATE_COLS: List[str] = field(
-        default_factory=lambda: [
-            "bvid",
-            "aid",
-            "title",
-            "view",
-            "uploader",
-            "copyright",
-            "image_url",
-        ]
-    )
 
 
 @dataclass

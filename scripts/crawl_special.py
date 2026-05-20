@@ -1,17 +1,19 @@
-# 抓取特殊数据.py
+# scripts/crawl_special.py
 import asyncio
 
+import _bootstrap  # noqa: F401
 import yaml
 
 from bilibili.client import BilibiliClient
 from bilibili.scraper import BilibiliScraper
 from common.config import get_paths
+from common.io import save_jsonl
 from common.models import ScraperConfig, SearchOptions
+from crawl.pipeline import CrawlPipeline
 
 
 async def main():
     paths = get_paths()
-
     cfg = yaml.safe_load(paths.special_config.read_text(encoding="utf-8"))
 
     config = ScraperConfig(
@@ -31,14 +33,20 @@ async def main():
     client = BilibiliClient(config=config)
     scraper = BilibiliScraper(
         client=client,
-        mode="special",
         config=config,
         search_options=search_options,
     )
+    pipeline = CrawlPipeline(
+        scraper=scraper,
+        mode="special",
+        config=config,
+    )
 
     try:
-        videos = await scraper.process_new_songs()
-        await scraper.save_to_excel(videos)
+        videos = await pipeline.process_new_songs()
+        if videos:
+            usecols = paths.load_usecols("snapshot_new")
+            save_jsonl(videos, pipeline.filename, usecols=usecols)
     finally:
         await client.close()
 

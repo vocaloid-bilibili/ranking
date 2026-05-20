@@ -1,0 +1,56 @@
+{
+  "columns": {
+    "collected": [
+      "title",
+      "bvid",
+      "aid",
+      "uploader",
+      "copyright",
+      "pubdate",
+      "duration",
+      "page",
+      "thumbnail",
+      "streak"
+    ],
+    "snapshot_main": [
+      "title",
+      "bvid",
+      "aid",
+      "uploader",
+      "copyright",
+      "pubdate",
+      "duration",
+      "page",
+      "thumbnail",
+      "streak",
+      "view",
+      "favorite",
+      "coin",
+      "like",
+      "danmaku",
+      "reply",
+      "share"
+    ],
+    "snapshot_new": [
+      "title",
+      "bvid",
+      "aid",
+      "uploader",
+      "copyright",
+      "pubdate",
+      "duration",
+      "page",
+      "thumbnail",
+      "streak",
+      "view",
+      "favorite",
+      "coin",
+      "like",
+      "danmaku",
+      "reply",
+      "share",
+      "tid",
+      "intro"
+    ]
+  }
+}
