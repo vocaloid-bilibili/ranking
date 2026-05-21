@@ -3,7 +3,6 @@
 
 import asyncio
 import random
-import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
@@ -348,64 +347,6 @@ class BilibiliClient:
             await asyncio.sleep(self.config.SLEEP_TIME)
 
         return all_videos
-
-    # ==================== 下载 ====================
-
-    def download_video(self, bvid: str) -> Optional[Path]:
-        if not self.videos_root:
-            return None
-        import yt_dlp
-
-        bvid_dir = self.videos_root / bvid
-        bvid_dir.mkdir(exist_ok=True)
-        cached = bvid_dir / f"{bvid}.mp4"
-        if cached.exists():
-            return cached
-        try:
-            with yt_dlp.YoutubeDL(
-                {
-                    "format": "bv*+ba/best",
-                    "outtmpl": str(bvid_dir / f"{bvid}.%(ext)s"),
-                    "quiet": True,
-                    "cookiefile": "config\\cookies.txt",
-                }
-            ) as ydl:
-                ydl.extract_info(
-                    f"https://www.bilibili.com/video/{bvid}", download=True
-                )
-            for p in bvid_dir.glob(f"{bvid}.*"):
-                if p.suffix.lower() == ".mp4" and p != cached:
-                    p.rename(cached)
-            return cached if cached.exists() else None
-        except Exception as e:
-            logger.error(f"[{bvid}] 下载失败: {e}")
-            return None
-
-    def extract_audio(self, bvid: str, video_path: Path) -> Optional[Path]:
-        audio = video_path.parent / f"{bvid}.wav"
-        if audio.exists():
-            return audio
-        try:
-            subprocess.run(
-                [
-                    self.ffmpeg_bin,
-                    "-y",
-                    "-i",
-                    str(video_path),
-                    "-vn",
-                    "-ac",
-                    "1",
-                    "-ar",
-                    "22050",
-                    str(audio),
-                    "-loglevel",
-                    "error",
-                ],
-                check=True,
-            )
-            return audio
-        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
-            return None
 
     # ==================== 工具 ====================
 

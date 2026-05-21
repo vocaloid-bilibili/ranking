@@ -3,8 +3,6 @@
 dirs:
   data: "data"
   config: "config"
-  export: "export"
-  downloads: "downloads"
 
 paths:
   collected: "data/collected.jsonl"
@@ -14,7 +12,3 @@ paths:
   keywords: "config/keywords.json"
   columns: "config/columns.json"
   special_config: "config/special.yaml"
-  ai: "config/ai.yaml"
-  prompt_template: "config/prompt_template.txt"
-  exclude_singers: "config/exclude_singers.yaml"
-  sftp: "config/sftp.yaml"
